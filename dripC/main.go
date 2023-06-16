@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"time"
@@ -27,18 +28,14 @@ var colors = []string{
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	bg := os.Getenv("TERM_BACKGROUND")
-	fmt.Println(bg)
+	color := colors[rand.Intn(len(colors))]
+	fmt.Printf("%s\033", color)
+	// escape sequence consumes first character of input, provided zero-width space. if this line is deleted, the first character of input will be consumed.
+	fmt.Printf("​")
+	inputReader := bufio.NewReader(os.Stdin)
+	outputWriter := bufio.NewWriter(os.Stdout)
 
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		color := colors[rand.Intn(len(colors))]
-		fmt.Printf("%s%s\033[0m\n", color, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
-	}
-
+	io.Copy(outputWriter, inputReader)
 	// reset terminal color
 	fmt.Print("\033[0m")
 }

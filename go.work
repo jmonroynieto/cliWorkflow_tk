@@ -4,5 +4,6 @@ use (
 	./barker
 	./calshow
 	./describeFiles
+	./dripC
 	./filterMyCal
 )
