@@ -29,7 +29,9 @@ var colors = []string{
 
 func main() {
 	changeColor()
-	if len(os.Args) == 2 && strings.ToUpper(os.Args[1]) == "EACHLN" {
+    opt := strings.ToUpper(os.Args[1])
+    opt = strings.Replace(opt, "-", "",-1)
+	if len(os.Args) == 2 && opt == "EACHLN" {
 		colorEach()
 	} else {
 		colorAll()
