@@ -29,9 +29,7 @@ var colors = []string{
 
 func main() {
 	changeColor()
-    opt := strings.ToUpper(os.Args[1])
-    opt = strings.Replace(opt, "-", "",-1)
-	if len(os.Args) == 2 && opt == "EACHLN" {
+	if len(os.Args) == 2 && prep(os.Args[1]) == "EACHLN" {
 		colorEach()
 	} else {
 		colorAll()
@@ -40,11 +38,27 @@ func main() {
 	fmt.Print("\033[0m")
 }
 
+func prep(opt string) string {
+	opt = strings.ToUpper(os.Args[1])
+	opt = strings.Replace(opt, "-", "", -1)
+	return opt
+}
+
+// state machinge, sorry about the global
+var color string
+var old string
+
 func changeColor() {
-	rand.Seed(time.Now().UnixNano())
-	color := colors[rand.Intn(len(colors))]
-	fmt.Printf("%s\033", color)
-	fmt.Printf("​")
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	old = color
+	c := colors[r.Intn(len(colors))]
+	if c != old {
+		color = c
+		fmt.Printf("%s", color)
+		return
+	}
+	changeColor()
 }
 
 func colorAll() {
@@ -57,8 +71,9 @@ func colorAll() {
 func colorEach() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		color := colors[rand.Intn(len(colors))]
-		fmt.Printf("%s%s\033[0m\n", color, scanner.Text())
+		//print scanner text to stdout with color
+		fmt.Printf("%s\n", scanner.Text())
+		changeColor()
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "reading standard input:", err)
