@@ -6,4 +6,5 @@ use (
 	./describeFiles
 	./dripC
 	./filterMyCal
+	./quoteadder
 )
