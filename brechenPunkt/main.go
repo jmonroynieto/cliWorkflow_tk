@@ -90,7 +90,7 @@ func main() {
 			continue
 		}
 		//set all attributes of the punkt
-		l.LogMessage = strings.TrimSpace(split[1])
+		l.LogMessage = text
 		l.Lines = []Line{Line{lineNo, 0}, Line{lineNo, 0}}
 		l.Enabled = true
 		c = append(c, l)
