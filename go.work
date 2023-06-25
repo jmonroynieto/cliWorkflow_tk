@@ -2,6 +2,7 @@ go 1.20
 
 use (
 	./barker
+	./brechenPunkt
 	./calshow
 	./describeFiles
 	./dripC
