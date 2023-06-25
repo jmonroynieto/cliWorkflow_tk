@@ -1,100 +1,165 @@
+// brechenPunkt is a simple tool to create logpoints for vscode via BreakpointIO extension
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/manifoldco/promptui"
 )
 
-type Line struct {
+type line struct {
 	Line      int `json:"line"`
 	Character int `json:"character"`
 }
 
-type punkt struct {
+type Punkt struct {
 	Location   string `json:"location"`
-	Lines      []Line `json:"line"`
+	Lines      []line `json:"line"`
 	Enabled    bool   `json:"enabled"`
-	LogMessage string `json:"logMessage"`
+	LogMessage string `json:"logMessage,omitempty"`
+}
+type collection []Punkt
+
+func shouldContinue() bool {
+	test := promptui.Prompt{
+		Label:     "Continue?",
+		IsConfirm: true,
+		Default:   "y",
+		Validate: func(input string) error {
+			response := strings.ToLower(input)
+			if response == "y" || response == "n" || response == "yes" || response == "no" {
+				return nil
+			}
+			//reset the input of promptui
+			return fmt.Errorf("invalid input: backspace and try again")
+		},
+	}
+	r, err := test.Run()
+	if err != nil && err.Error() != "" {
+		if err.Error() == "invalid input" {
+			return shouldContinue()
+		} else {
+			fmt.Printf("Prompt failed %v\n", err)
+			return false
+		}
+	}
+	if strings.ToLower(r) == "y" || strings.ToLower(r) == "yes" {
+		return true
+	}
+	return false
 }
 
-type collection []punkt
+var message = promptui.Prompt{
+	Label:       "\x1b[32mEnter <location>:<message>\x1b[0m",
+	HideEntered: true,
+}
 
 func main() {
-	outputfile := "breakpoints.json"
-	//get argument from command line, must be a real file on the run directory
-	//if not exit with error
-	//if it exists just keep the filename, no dir info
-	// filename is required
+	outputfilename := "breakpoints.json"
+	var f *os.File
+
+	//annotee is required
 	if len(os.Args) < 2 {
 		fmt.Println("filename is required")
 		os.Exit(1)
 	}
-	filename := os.Args[1]
-	//check if file exists
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		fmt.Println("file does not exist")
+	annotee := os.Args[1]
+	if _, err := os.Stat(annotee); os.IsNotExist(err) {
+		fmt.Println("the file you are trying to annotate does not exist")
 		os.Exit(1)
 	}
+	var fErr error
+	permission := os.O_RDWR | os.O_CREATE
+	if _, err := os.Stat(".vscode"); os.IsNotExist(err) {
+		//stat the current directory file
+		if _, err := os.Stat(outputfilename); os.IsNotExist(err) {
+			f, fErr = os.Create(outputfilename)
+		} else {
+			f, fErr = os.OpenFile(outputfilename, permission, 0644)
+		}
+	} else {
+		if _, err = os.Stat(".vscode/breakpoints.json"); os.IsNotExist(err) {
+			f, fErr = os.Create(".vscode/breakpoints.json")
+		} else {
+			f, fErr = os.OpenFile(".vscode/breakpoints.json", permission, 0644)
+		}
+	}
+	if fErr != nil {
+		fmt.Println("error accessing breakpoints.json _ ", fErr)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	fmt.Println("\x1b[34mSkip message to create regular breakpoint\nCtl+C resets the prompt\nEntring Ctl+']' will terminate and save \x1b[0m\n****")
 	//get the filename without the path
 	//split on the last slash
 	var oldCounter, newCounter int
 	var c collection
-	var l punkt
-	reader := bufio.NewReader(os.Stdin)
+	var l Punkt
 
-	//read output file, and append its items to collection
-	//if file does not exist, create it
-	if _, err := os.Stat(outputfile); os.IsNotExist(err) {
-		//create the file
-		f, err := os.Create(outputfile)
-		if err != nil {
-			fmt.Println("error reating breakpoints.json")
-			panic(err)
-		}
-		defer f.Close()
-	} else {
-		//read the file
-		dat, err := ioutil.ReadFile(outputfile)
-		if err != nil {
-			panic(err)
-		}
-		//unmarshal the json
-		err = json.Unmarshal(dat, &c)
-		if err != nil {
-			panic(err)
+	//read all the breakpoint file into dat
+	dat, err := ioutil.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+	//unmarshal the json
+	err = json.Unmarshal(dat, &c)
+	if err != nil {
+		if err.Error() == "unexpected end of JSON input" && len(c) == 0 {
+			fmt.Println("no breakpoints to read")
+			c := shouldContinue()
+			if !c {
+				os.Exit(0)
+			}
+		} else {
+			fmt.Printf("error: %v\n", err)
+			os.Exit(1)
 		}
 	}
 	oldCounter = len(c)
-	l.Location = filename
+	//set to root of workspace
+	//..if annotee has '/' prefix remove it
+	annotee = strings.TrimPrefix(annotee, "./")
+	l.Location = fmt.Sprintf("/%s", annotee)
 	for {
-		fmt.Printf("\x1b[32mEnter <location>:<message>\x1b[0m\n")
-		text, _ := reader.ReadString('\n')
+		text, err := message.Run()
+		if err != nil {
+			fmt.Printf("unexpected error %v", err)
+			continue
+		}
 		//when input is control character trl-] exit
 		if strings.Contains(text, "\x1d") {
 			fmt.Printf("\x1b[34mYou inputed %d new logpoints to your previous %d!\x1b[0m\n", newCounter, oldCounter)
 			break
 		}
+		text = strings.TrimSpace(text)
 		split := strings.Split(text, ":")
 		lineNo, err := strconv.Atoi(strings.TrimSpace(split[0]))
 		if err != nil {
-			fmt.Printf("\x1b[31m\tbad input – error converting line number to int: %v\x1b[0m\n", err)
-			fmt.Printf("\x1b[31m\ttry again\x1b[0m\n")
+			fmt.Printf("\x1b[31m\tbad input – try again\x1b[0m\n")
 			//reset ansii color
 			fmt.Printf("\x1b[0m")
-			fmt.Printf("your current message was\n %s:%s", split[0], text)
+			fmt.Printf("Failed – %s\n", text)
 			continue
 		}
+
 		//set all attributes of the punkt
 		//message is a whitespace stripped version of the input text
-		l.LogMessage = strings.TrimSpace(text)
-		l.Lines = []Line{{lineNo, 0}, {lineNo, 0}}
+		if len(split) < 2 || strings.TrimSpace(split[1]) == "" {
+			l.LogMessage = ""
+		} else {
+			l.LogMessage = text
+		}
+		l.Lines = []line{{lineNo - 1, 0}, {lineNo - 1, 0}}
 		l.Enabled = true
 		c = append(c, l)
+		fmt.Printf("Entered – %s\n", strings.Trim(text, ":"))
+		//reset
 		l.Lines = nil
 		l.LogMessage = ""
 		newCounter++
@@ -104,5 +169,12 @@ func main() {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-	ioutil.WriteFile(outputfile, b, 0644)
+	if len(b) < 20 {
+		fmt.Printf("\x1b[31m\tNo breakpoints to write, exiting\x1b[0m\n")
+		os.Exit(0)
+	}
+	//overwrite the file
+	f.Truncate(0)
+	f.Seek(0, 0)
+	f.Write(b)
 }
