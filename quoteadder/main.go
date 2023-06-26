@@ -84,8 +84,10 @@ func main() {
 	for anotherQuote {
 		var quote, attribution string
 		quote = readFromUser_multiline("Enter a quote:", scn)
+		quote = strings.TrimSpace(quote)
 		//scan multiline input
 		attribution = readFromUser_multiline("Enter an attribution:", scn)
+		attribution = strings.TrimSpace(attribution)
 		anotherQuote = boolyn("Add another quote? (y/n)", scn)
 		//add quote and attribution to data
 		data = append(data, map[string]string{"text": quote, "attribution": attribution})
