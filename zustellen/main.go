@@ -22,6 +22,7 @@ type Punkt struct {
 	Lines      []line `json:"line"`
 	Enabled    bool   `json:"enabled"`
 	LogMessage string `json:"logMessage,omitempty"`
+	Condition  string `json:"condition,omitempty"`
 }
 type collection []Punkt
 
@@ -55,7 +56,7 @@ func shouldContinue() bool {
 }
 
 var message = promptui.Prompt{
-	Label:       "\x1b[32mEnter <location>:<message>\x1b[0m",
+	Label:       "\x1b[32mEnter <\x1b[0m@\x1b[32mline>:<msg/\x1b[0m~\x1b[32mcndtn>\x1b[0m",
 	HideEntered: true,
 }
 
@@ -95,7 +96,7 @@ func main() {
 	}
 	defer f.Close()
 
-	fmt.Println("\x1b[34mSkip message to create regular breakpoint\nCtl+C resets the prompt\nEntring Ctl+']' will terminate and save \x1b[0m\n****")
+	fmt.Println(usage)
 	//get the filename without the path
 	//split on the last slash
 	var oldCounter, newCounter int
@@ -133,12 +134,21 @@ func main() {
 			continue
 		}
 		//when input is control character trl-] exit
+		text = strings.TrimSpace(text)
 		if strings.Contains(text, "\x1d") {
-			fmt.Printf("\x1b[34mYou inputed %d new logpoints to your previous %d!\x1b[0m\n", newCounter, oldCounter)
+			fmt.Printf("\x1b[33mYou inputed %d new logpoints to your previous %d!\x1b[0m\n", newCounter, oldCounter)
 			break
+		} else if strings.ToLower(text) == "quit" || strings.ToLower(text) == "exit" {
+			fmt.Println("\x1b[33m\tNo modifications made\x1b[0m")
+			os.Exit(0)
 		}
 		text = strings.TrimSpace(text)
 		split := strings.Split(text, ":")
+		// if split[0] starts with @, set enabled to false
+		if strings.HasPrefix(split[0], "@") {
+			l.Enabled = false
+			split[0] = strings.TrimPrefix(split[0], "@")
+		}
 		lineNo, err := strconv.Atoi(strings.TrimSpace(split[0]))
 		if err != nil {
 			fmt.Printf("\x1b[31m\tbad input – try again\x1b[0m\n")
@@ -153,15 +163,22 @@ func main() {
 		if len(split) < 2 || strings.TrimSpace(split[1]) == "" {
 			l.LogMessage = ""
 		} else {
+			//if text starts with ~, set condition
+			if strings.HasPrefix(split[1], "~") {
+				cndt := strings.TrimSpace(split[1])
+				cndt = strings.TrimPrefix(cndt, "~")
+				l.Condition = cndt
+			}
 			l.LogMessage = text
 		}
+
 		l.Lines = []line{{lineNo - 1, 0}, {lineNo - 1, 0}}
-		l.Enabled = true
 		c = append(c, l)
 		fmt.Printf("Entered – %s\n", strings.Trim(text, ":"))
 		//reset
 		l.Lines = nil
 		l.LogMessage = ""
+		l.Enabled = true
 		newCounter++
 	}
 
@@ -170,7 +187,7 @@ func main() {
 		fmt.Println("error:", err)
 	}
 	if len(b) < 20 {
-		fmt.Printf("\x1b[31m\tNo breakpoints to write, exiting\x1b[0m\n")
+		fmt.Printf("\x1b[33m\tNo breakpoints to write, exiting\x1b[0m\n")
 		os.Exit(0)
 	}
 	//overwrite the file
@@ -178,3 +195,5 @@ func main() {
 	f.Seek(0, 0)
 	f.Write(b)
 }
+
+var usage string = "\x1b[34m- Skip msg to create breakpoint\n- Ctl+C to reset prompt\n- Input Ctl+']' to save and exit\n- Prefix \x1b[0m'@'\x1b[34mline to disable point\n- Prefix \x1b[0m'~'\x1b[34mmsg to set as cndtn\n- Input 'exit' or 'quit' to exit w/o saving\x1b[0m\n**********"

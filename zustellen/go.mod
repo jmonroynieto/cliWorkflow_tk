@@ -1,4 +1,4 @@
-module github.com/jmonroynieto/cliWorkflow_tk/zutellen
+module github.com/jmonroynieto/cliWorkflow_tk/zustellen
 
 go 1.20
 
