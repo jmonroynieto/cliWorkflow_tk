@@ -179,6 +179,7 @@ func main() {
 		l.Lines = nil
 		l.LogMessage = ""
 		l.Enabled = true
+		l.Condition = ""
 		newCounter++
 	}
 
