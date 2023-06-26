@@ -1,4 +1,4 @@
-module github.com/jmonroynieto/cliWorkflow_tk/brechenPunkt
+module github.com/jmonroynieto/cliWorkflow_tk/zutellen
 
 go 1.20
 
