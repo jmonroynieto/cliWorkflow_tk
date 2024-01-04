@@ -1,3 +1,11 @@
+2023-Feb-22 20:28:06	quoteadder/	adds cuotes to be used with lemnos/tt
+
+2023-Feb-22 20:28:15	watchAdir/	gives notifications of files created
+
+2023-Feb-22 20:26:14	barker/	sends email when file is created
+
+2024-Feb-04 10:31:17	cw/	Terminal bookmark system
+
 2023-Feb-22 20:26:29	calshow/	prints calendar import file in readable week format
 
 2023-Feb-22 20:26:53	describeFiles/	creates file descriptions such as this one the file can exist or not
@@ -5,10 +13,4 @@
 2023-Feb-22 20:27:21	dripC/	color output randomly, useful for cat or if the output is hard to parse when wrapped
 
 2023-Feb-22 20:27:33	filterMyCal/	take out iterms of csv calendar import file
-
-2023-Feb-22 20:28:06	quoteadder/	adds cuotes to be used with lemnos/tt
-
-2023-Feb-22 20:28:15	watchAdir/	gives notifications of files created
-
-2023-Feb-22 20:26:14	barker/	sends email when file is created
 

@@ -1,11 +1,12 @@
-go 1.20
+go 1.21.5
 
 use (
 	./barker
-	./zustellen
 	./calshow
+	./cw
 	./describeFiles
 	./dripC
 	./filterMyCal
 	./quoteadder
+	./zustellen
 )
