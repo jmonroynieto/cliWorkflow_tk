@@ -8,5 +8,6 @@ use (
 	./dripC
 	./filterMyCal
 	./quoteadder
+	./watchAdir
 	./zustellen
 )
