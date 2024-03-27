@@ -11,20 +11,26 @@ import (
 )
 
 var colors = []string{
-	"\033[31m", // Red
-	"\033[32m", // Green
-	"\033[33m", // Yellow
-	"\033[34m", // Blue
-	"\033[35m", // Magenta
-	"\033[36m", // Cyan
-	"\033[37m", // White
-	"\033[91m", // Bold red
-	"\033[92m", // Bold green
-	"\033[93m", // Bold yellow
-	"\033[94m", // Bold blue
-	"\033[95m", // Bold magenta
-	"\033[96m", // Bold cyan
-	"\033[97m", // Bold white
+	"\033[31m",       // Red
+	"\033[32m",       // Green
+	"\033[33m",       // Yellow
+	"\033[34m",       // Blue
+	"\033[35m",       // Magenta
+	"\033[36m",       // Cyan
+	"\033[37m",       // White
+	"\033[91m",       // Bold red
+	"\033[92m",       // Bold green
+	"\033[93m",       // Bold yellow
+	"\033[94m",       // Bold blue
+	"\033[95m",       // Bold magenta
+	"\033[96m",       // Bold cyan
+	"\033[97m",       // Bold white
+	"\033[38;5;196m", // Light orange
+	"\033[38;5;84m",  // Turquoise
+	"\033[38;5;130m", // Light violet
+	"\033[38;5;34m",  // Blueviolet
+	"\033[38;5;208m", // Sea green
+	"\033[38;5;166m", // Coral
 }
 
 func main() {
