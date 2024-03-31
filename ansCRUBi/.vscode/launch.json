@@ -1,0 +1,15 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {"name": "some name",
+        "type": "go",
+        "request": "launch",
+    "program": "${workspaceFolder}",
+    //"args": ["<", "$(printf '^[[31mf100522240^[[0m\n^[[31mf100560640^[[0m\n^[[31mf100599296^[[0m\n^[[31mf100791808^[[0m\n^[[31mf100829952^[[0m\n^[[31mf100868096^[[0m\n^[[31mf100906240^[[0m\n^[[31mf100983040^[[0m\n^[[31mf101098240^[[0m\n')"],
+    "externalConsole": true,
+}
+    ]
+}
