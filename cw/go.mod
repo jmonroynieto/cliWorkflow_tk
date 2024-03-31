@@ -1,3 +1,3 @@
 module github.com/jmonroynieto/cliWorkflow_tk/cw
 
-go 1.21.5
+go 1.22
