@@ -2,14 +2,18 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"text/tabwriter"
 	"time"
+
+	// "text/tabwriter"
+
+	"github.com/charmbracelet/bubbles/table"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 const notesFileName = "description.notes"
@@ -21,13 +25,19 @@ func main() {
 
 	if len(args) == 0 {
 		tellUSR("Looking for notes in this directory:")
-		err := printNotesFile()
-		os.Exit(0)
+		rows, err := retrieveNotesTable()
 		if err != nil {
 			tellUSR("Error reading notes file:", err.Error())
 			os.Exit(1)
-
+			panic("error reading note: " + err.Error())
 		}
+		descriptions := showTable(rows)
+		if _, err := tea.NewProgram(model{descriptions}).Run(); err != nil {
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+
 	}
 
 	notes, err := readNotesFile()
@@ -68,7 +78,7 @@ func (r record) String() string {
 
 func readNotesFile() (map[string]record, error) {
 	notes := make(map[string]record)
-	data, err := ioutil.ReadFile(notesFileName)
+	data, err := os.ReadFile(notesFileName)
 	if os.IsNotExist(err) {
 		return notes, nil
 	}
@@ -110,7 +120,7 @@ func writeNotesFile(notes map[string]record) error {
 	}
 
 	data := []byte(strings.Join(lines, "\n") + "\n")
-	err := ioutil.WriteFile(notesFileName, data, 0644)
+	err := os.WriteFile(notesFileName, data, 0644)
 
 	return err
 }
@@ -119,12 +129,28 @@ func tellUSR(message ...string) {
 	fmt.Println(programMSG, strings.Join(message, " "), colorReset)
 }
 
-func printNotesFile() error {
-	data, err := ioutil.ReadFile(notesFileName)
+func retrieveNotesTable() ([]table.Row, error) {
+	data, err := os.ReadFile(notesFileName)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, '\t', 0)
-	fmt.Fprintln(w, string(data))
-	return nil
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	var rowmaker []table.Row
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Split(line, "\t") //expects three
+		if len(fields) != 3 && (len(fields) > 2) {
+			panic(fmt.Sprintf("error: table malformed there is a row with malformed fields %q of length: %d", fields, len(fields)))
+		}
+		if fields[0] == "" {
+			continue
+		}
+		rowmaker = append(rowmaker, table.Row(fields))
+	}
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+	//old printer
+	//	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, '\t', 0)
+	return rowmaker, nil
 }
