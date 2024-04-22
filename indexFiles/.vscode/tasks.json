@@ -1,0 +1,15 @@
+    {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "testdir",
+                "command": "mkdir -p test/{a,b,c}; touch test/{d,e}; touch test/a/f; touch test/c/e; ln -s ../a/f test/b/f;printf '.*/e$'>mockignore.list",
+                "type": "shell",
+            },
+            {
+                "label": "rmtestdir",
+                "command": "rm -r test mockignore.list;",
+                "type": "shell",
+            },
+        ]
+    }

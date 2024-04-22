@@ -9,6 +9,7 @@ use (
 	./describeFiles
 	./dripC
 	./filterMyCal
+	./indexFiles
 	./kompti
 	./quoteadder
 	./watchAdir
