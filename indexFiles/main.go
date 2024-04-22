@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	Version    = "0.1"
+	Version    = "1.1.1"
 	CommitId   string
 	ignorable  []*regexp.Regexp
 	workersNum int
