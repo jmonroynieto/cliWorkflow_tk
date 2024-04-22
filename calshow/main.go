@@ -1,4 +1,4 @@
-//calshow works with csv import files for gCal
+// calshow works with csv import files for gCal
 package main
 
 import (
@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pydpll/errorutils"
 )
 
 func main() {
@@ -18,13 +20,10 @@ func main() {
 	}
 	csvFileName := os.Args[1]
 	csvFile, err := os.Open(csvFileName)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	errorutils.ExitOnFail(err)
+
 	defer csvFile.Close()
 
-	
 	// Create a map to store the events
 	events := make(map[string][]string)
 	reader := csv.NewReader(csvFile)
@@ -34,16 +33,12 @@ func main() {
 		if err == io.EOF {
 			break
 		}
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		errorutils.ExitOnFail(err)
 
 		events[line[0]] = append(events[line[0]], line[1:]...)
 	}
-fmt.Println(events)
+	fmt.Println(events)
 
-	
 	// Print the week calendar view
 	for day := 1; day <= 7; day++ {
 		dayOfWeek := time.Now().AddDate(0, 0, day-1).Weekday()
@@ -61,4 +56,3 @@ fmt.Println(events)
 		}
 	}
 }
-

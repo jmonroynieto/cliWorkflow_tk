@@ -11,13 +11,21 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/pydpll/errorutils"
 )
 
 var global []byte
 
+var (
+	Version  = "1.1.0"
+	CommitId string
+)
+
 func main() {
 	// Check that the user has provided a filename.
 	if len(os.Args) < 2 {
+		fmt.Printf("QUOTEADDER\nv%s - %s\n", Version, CommitId)
 		fmt.Println("Please provide a filename.")
 		return
 	}
@@ -121,9 +129,7 @@ func main() {
 // the file is created and eturned as an os.File pointer.
 func mustOpen(name string) *os.File {
 	file, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		panic(err)
-	}
+	errorutils.ExitOnFail(err)
 	return file
 }
 

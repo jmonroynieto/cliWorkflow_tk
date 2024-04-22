@@ -4,12 +4,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/manifoldco/promptui"
+	"github.com/pydpll/errorutils"
 )
 
 type line struct {
@@ -104,10 +105,8 @@ func main() {
 	var l Punkt
 
 	//read all the breakpoint file into dat
-	dat, err := ioutil.ReadAll(f)
-	if err != nil {
-		panic(err)
-	}
+	dat, err := io.ReadAll(f)
+	errorutils.ExitOnFail(err)
 	//unmarshal the json
 	err = json.Unmarshal(dat, &c)
 	if err != nil {

@@ -7,15 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"strings"
 	"time"
 
-	// "text/tabwriter"
-
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/pydpll/errorutils"
 )
 
 const notesFileName = "description.notes"
@@ -109,9 +107,7 @@ func readNoteFromPrompt(filename string) string {
 	if err == io.EOF {
 		err = nil
 	}
-	if err != nil {
-		log.Fatalf("Unexpected error while taking in new note %v", err)
-	}
+	errorutils.ExitOnFail(err, errorutils.WithMsg(fmt.Sprintf("Unexpected error while taking in new note %v", err)))
 
 	return strings.TrimSpace(note)
 
@@ -145,16 +141,14 @@ func retrieveNotesTable() ([]table.Row, error) {
 		line := scanner.Text()
 		fields := strings.Split(line, "\t") //expects three
 		if len(fields) != 3 && (len(fields) > 2) {
-			panic(fmt.Sprintf("error: table malformed there is a row with malformed fields %q of length: %d", fields, len(fields)))
+			errorutils.ExitOnFail(fmt.Errorf("error: table malformed there is a row with malformed fields %q of length: %d", fields, len(fields)))
 		}
 		if fields[0] == "" {
 			continue
 		}
 		rowmaker = append(rowmaker, table.Row(fields))
 	}
-	if err := scanner.Err(); err != nil {
-		panic(err)
-	}
+	errorutils.ExitOnFail(scanner.Err())
 	//old printer
 	//	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, '\t', 0)
 	return rowmaker, nil

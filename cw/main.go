@@ -10,6 +10,13 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/pydpll/errorutils"
+)
+
+var (
+	Version  = "1.1.0"
+	CommitId string
 )
 
 func main() {
@@ -29,6 +36,8 @@ func main() {
 		unset(args[1:])
 	} else if command == "list" {
 		list()
+	} else if command == "version" {
+		fmt.Printf("Version: %s - %s\n", Version, CommitId)
 	} else {
 		printHelp()
 	}
@@ -93,6 +102,7 @@ func list() {
 
 // printHelp prints the help
 func printHelp() {
+	fmt.Printf("Version: %s - %s\n", Version, CommitId)
 	fmt.Println(`Creates aliases for bookmarks (e.g., cw1, cwb) for easy access
 
 **Description:**
@@ -148,20 +158,16 @@ func extractBM(lines []string) (map[string]string, []string) {
 func openFile(flag int) *os.File {
 	//get the home directory
 	home, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("Error getting home directory")
-		os.Exit(1)
-	}
-
+	errorutils.ExitOnFail(err,
+		errorutils.WithLineRef("XXKbyHh7KBI"),
+		errorutils.WithMsg("Error getting home directory"),
+	)
 	//get the path to the file
 	pathToFile := filepath.Join(home, ".cw_bookmarks.sh")
 
 	//open the file
 	file, err := os.OpenFile(pathToFile, flag, 0644)
-	if err != nil {
-		fmt.Println("Error opening file")
-		os.Exit(1)
-	}
+	errorutils.ExitOnFail(err)
 	return file
 }
 

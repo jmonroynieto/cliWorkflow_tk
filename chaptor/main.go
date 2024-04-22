@@ -24,12 +24,18 @@ import (
 	"golang.org/x/net/html"
 )
 
+var (
+	Version  = "1.1.0"
+	CommitId string
+)
+
 func main() {
 	var urlFile string
 	sleepTime := 6 * time.Second
 	app := &cli.App{
-		Name:  "chaptor",
-		Usage: "Royal road chapter extraction",
+		Name:    "chaptor",
+		Usage:   "Royal road chapter extraction",
+		Version: fmt.Sprintf("%s - %s", Version, CommitId),
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",
@@ -155,7 +161,7 @@ func main() {
 
 func requestchapter(url string) (tocEntry, chapter string) {
 	resp, err := http.Get(url)
-	errorutils.PanicOnFail(err)
+	errorutils.ExitOnFail(err)
 	defer resp.Body.Close()
 	tt, id, chapter := composeChapter(resp)
 	tocEntry = fmt.Sprintf(`<li>
@@ -203,9 +209,8 @@ func composeChapter(resp *http.Response) (titleText, id, chapter string) {
 		if targetTitle != nil {
 			targetTitle.Attr = append(targetTitle.Attr, html.Attribute{Key: "id", Val: identifier})
 			err := html.Render(&titler, targetTitle)
-			if err != nil {
-				fmt.Println("error while extracting target title")
-			}
+			errorutils.WarnOnFail(err, errorutils.WithMsg("error while extracting target title"))
+
 		} else {
 			fmt.Println("title was empty")
 		}

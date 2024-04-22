@@ -12,6 +12,11 @@ const (
 	helpText    = `tactTime requires month and year in any of a variety of formats. When no arguments are provided, current time is printed`
 )
 
+var (
+	Version  = "1.1.0"
+	CommitId string
+)
+
 func main() {
 	var args = os.Args
 	if len(args) == 1 {
@@ -19,6 +24,7 @@ func main() {
 		q := transform(y, m)
 		fmt.Printf("%d\n", q)
 	} else if args[1] == "help" || args[1] == "-h" || args[1] == "--help" {
+		fmt.Printf("%s - %s\n", Version, CommitId)
 		fmt.Println(helpText)
 	} else {
 		dateStr := strings.Join(args[1:], ` `)

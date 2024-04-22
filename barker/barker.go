@@ -1,59 +1,111 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
-	"github.com/TGenNorth/errorutils"
 	"github.com/go-mail/mail"
+	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+)
+
+var (
+	Version  = "1.1.0"
+	CommitId string
 )
 
 func main() {
-	//quick CLI
-	fs := flag.NewFlagSet("barker", flag.ExitOnError)
-	file := fs.String("file", "", "The directory to monitor.")
-	recipient := fs.String("recipient", "", "The email recipient.")
-	tmplt := fs.Bool("exp", false, "Export commands to set the SMTP_SENDER and SMTP_PASSWORD environment variables.")
-	walltime := fs.Int("walltime", 0, "The time in hours to run the program for. The program will never wait indefinitely, min=1, max=168.")
-	//Usage flag
-	fs.Parse(os.Args[1:])
+	sort.Sort(cli.FlagsByName(appFlags))
+	app := &cli.App{
+		Name:     "name",
+		Usage:    "usage",
+		Flags:    appFlags,
+		Commands: appCmds,
+		Version:  fmt.Sprintf("%s - %s", Version, CommitId),
+	}
+
+	app.Run(os.Args)
+}
+
+var appFlags []cli.Flag = []cli.Flag{
+	&cli.BoolFlag{
+		Name:    "debug",
+		Aliases: []string{"d"},
+		Usage:   "activates debugging messages",
+		Action: func(ctx *cli.Context, shouldDebug bool) error {
+			if shouldDebug {
+				logrus.SetLevel(logrus.DebugLevel)
+			}
+			return nil
+
+		},
+	},
+	&cli.StringFlag{
+		Name:    "dir",
+		Aliases: []string{"file", "a"},
+		Usage:   "The `DIR` to monitor",
+	},
+	&cli.StringFlag{
+		Name:    "recipient",
+		Aliases: []string{"r"},
+		Usage:   "email `ADDRESS` to report to",
+	},
+	&cli.BoolFlag{
+		Name:  "exp",
+		Usage: "Export commands to set the SMTP_SENDER and SMTP_PASSWORD environment variables",
+	},
+	&cli.IntFlag{
+		Name:        "walltime",
+		Value:       24,
+		Usage:       "timer to stop. BARKER never runs forever",
+		DefaultText: "1 day",
+	},
+}
+
+var appCmds []*cli.Command = []*cli.Command{
+	{
+		Name:   "name",
+		Usage:  "Usage",
+		Action: action1,
+	},
+}
+
+func action1(ctx *cli.Context) error {
+	file := ctx.String("dir")
+	recipient := ctx.String("recipient")
+	walltime := ctx.Int("walltime")
 	//when template is specified, print the template and exit
-	if *tmplt {
+	if ctx.Bool("exp") {
 		fmt.Println("export SMTP_SENDER=\"\"")
 		fmt.Println("export SMTP_PASSWORD=\"\"")
 		os.Exit(0)
 	}
-	if *file == "" {
-		errorutils.PanicOnFail(
+	if file == "" {
+		errorutils.ExitOnFail(
 			errorutils.NewReport("BARKER: Please specify the directory or file to monitor.", ""),
 			errorutils.WithExitCode(1),
 		)
 	}
-	if *recipient == "" {
-		errorutils.PanicOnFail(
+	if recipient == "" {
+		errorutils.ExitOnFail(
 			errorutils.NewReport("BARKER: Please specify the email recipient.", ""),
 			errorutils.WithExitCode(1),
 		)
-		return
 	}
 
 	logrus.Info("BARKER: remember that the security of your password is your responsibility. To avoid text saves of your password, please avoid writing the export statement in `.bashrc` or `.bash_profile`. Additionally, HISTIGNORE can be used to avoid saving the command to your shell's history. e.g. `HISTIGNORE='*SMTP_PASSWORD*`")
 
-	if *walltime == 0 {
-		logrus.Info("BARKER: No walltime specified, defaulting to 6 hours")
-		*walltime = int(6)
-	} else if *walltime < 1 || *walltime > 168 {
-		errorutils.PanicOnFail(
-			errorutils.NewReport(fmt.Sprintf("BARKER: Please specify a walltime between 1 and 168 hours. You specified: %d", *walltime), ""),
+	if walltime < 1 || walltime > 168 {
+		errorutils.ExitOnFail(
+			errorutils.NewReport(fmt.Sprintf("BARKER: Please specify a walltime between 1 and 168 hours. You specified: %d", walltime), ""),
 			errorutils.WithExitCode(1),
 		)
-		return
 	}
 	//start timer
-	wt := time.NewTimer(time.Duration(*walltime) * time.Hour)
+	wt := time.NewTimer(time.Duration(walltime) * time.Hour)
 
 	//email setup
 	sender := os.Getenv("SMTP_SENDER")
@@ -68,11 +120,11 @@ func main() {
 	}
 	msg := mail.NewMessage()
 	msg.SetHeader("From", sender)
-	msg.SetHeader("To", *recipient)
+	msg.SetHeader("To", recipient)
 	t := time.Now()
 	stringTime := t.Format("2006-01-02 15:04:05")
 	msg.SetHeader("Subject", fmt.Sprintf("Barker: change at %s", stringTime))
-	msg.SetBody("text/plain", fmt.Sprintf("%s\nBarker: your file %s has been created", stringTime, *file))
+	msg.SetBody("text/plain", fmt.Sprintf("%s\nBarker: your file %s has been created", stringTime, file))
 	d := mail.NewDialer("smtp.gmail.com", 587, sender, password)
 
 	//monitoring
@@ -84,19 +136,19 @@ LOOP:
 	for {
 		select {
 		case <-wt.C:
-			ranOutOfTime(*walltime)
+			ranOutOfTime(walltime)
 		case <-tick.C:
-			info, err2 = os.Stat(*file)
+			info, err2 = os.Stat(file)
 			if err2 == nil {
 				break LOOP
 			} else if os.IsNotExist(err2) {
 				continue
-			} else if err2 != nil && errCounter < 3 {
+			} else if errCounter < 3 {
 				errorutils.WarnOnFail(err2)
 				errCounter++
 				continue
 			} else if errCounter == 3 {
-				errorutils.PanicOnFail(err2, errorutils.WithExitCode(3))
+				errorutils.ExitOnFail(err2, errorutils.WithExitCode(3))
 			}
 
 		}
@@ -104,15 +156,16 @@ LOOP:
 
 	// attach info to email
 	temp, err := os.CreateTemp("", "barker.*.tmp")
-	errorutils.PanicOnFail(err)
+	errorutils.ExitOnFail(err)
 	_, err = temp.WriteString(fmt.Sprintf("Name: %s\nSize: %d\nMode: %s\nModTime: %s\nIsDir: %t\nSys: %v\n", info.Name(), info.Size(), info.Mode(), info.ModTime(), info.IsDir(), info.Sys()))
-	errorutils.PanicOnFail(err)
+	errorutils.ExitOnFail(err)
 	defer errorutils.NotifyClose(temp)
 	msg.Attach(temp.Name())
 	err = d.DialAndSend(msg)
-	errorutils.PanicOnFail(err)
+	errorutils.ExitOnFail(err)
+	return nil
 }
 
 func ranOutOfTime(walltime int) {
-	errorutils.PanicOnFail(fmt.Errorf("BARKER: the walltime timer has run out (time = %v), barker is shutting down", walltime), errorutils.WithExitCode(4))
+	errorutils.ExitOnFail(fmt.Errorf("BARKER: the walltime timer has run out (time = %v), barker is shutting down", walltime), errorutils.WithExitCode(4))
 }

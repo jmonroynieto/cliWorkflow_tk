@@ -7,17 +7,27 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/pydpll/errorutils"
+)
+
+var (
+	Version  = "1.1.0"
+	CommitId string
 )
 
 func main() {
 	// Define flags
 	daysFlag := flag.String("d", "", "comma-separated list of days to retain")
 	fileArg := flag.String("f", "", "CSV file to process")
+	versionPrint := flag.Bool("v", false, "print version of the tool")
 	flag.Parse()
-	// if flags are not provided, print usage and exit
+
 	if *daysFlag == "" || *fileArg == "" {
 		flag.Usage()
 		os.Exit(1)
+	} else if *versionPrint {
+		fmt.Printf("%s - %s", Version, CommitId)
 	}
 
 	// Parse daysFlag into a map for easy lookup
@@ -48,9 +58,7 @@ func main() {
 	// Read CSV from file
 	reader := csv.NewReader(file)
 	lines, err := reader.ReadAll()
-	if err != nil {
-		panic(err)
-	}
+	errorutils.ExitOnFail(err)
 
 	// Filter and retain specific days and header line
 	var filteredLines [][]string
@@ -62,18 +70,13 @@ func main() {
 
 	// Open fileArg for writing
 	file, err = os.Create(*fileArg)
-	if err != nil {
-		panic(err)
-	}
+	errorutils.ExitOnFail(err)
 	defer file.Close()
 
 	// Write filtered CSV to file
 	writer := csv.NewWriter(file)
 	for _, line := range filteredLines {
-		err := writer.Write(line)
-		if err != nil {
-			panic(err)
-		}
+		errorutils.ExitOnFail(writer.Write(line))
 	}
 	writer.Flush()
 

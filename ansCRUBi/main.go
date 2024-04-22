@@ -6,44 +6,90 @@ import (
 	"io"
 	"os"
 	"regexp"
+
+	"github.com/pydpll/errorutils"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 )
 
-// TODO: manage file overwrite instead of printout
+var (
+	Version  = "1.1.0"
+	CommitId string
+)
 
 func main() {
 	regex := regexp.MustCompile(`\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])`)
 
-	if len(os.Args) == 1 {
-		cleanLines(os.Stdin, regex)
-	} else {
-        if os.Args[1]== "-" {
-            cleanLines(os.Stdin, regex)
-            return
-        }
-		for _, filename := range os.Args[1:] {
-			if _, err := os.Stat(filename); os.IsNotExist(err) {
-				fmt.Fprintf(os.Stderr, "Error: file %s doesn't exist\n", filename)
-				continue
+	app := &cli.App{
+		Name:    "ansCRUBi",
+		Usage:   "Removes ansi control characters maybe left over from colorized commands",
+		Flags:   appFlags,
+		Version: fmt.Sprintf("%s - %s", Version, CommitId),
+		Action: func(ctx *cli.Context) error {
+			argLen := ctx.Args().Len()
+			if a := ctx.Args().First(); !ctx.Bool("files") && (a == "-" || a == "") {
+				cleanLines(os.Stdin, regex, os.Stdout)
+			} else if !ctx.Bool("files") && argLen > 0 {
+				cli.ShowAppHelp(ctx)
+				return errorutils.NewReport("ERROR: unknown positional arguments", "m700KwVadVJ")
+			}
+			for _, filename := range ctx.Args().Slice() {
+				if _, err := os.Stat(filename); os.IsNotExist(err) {
+					errorutils.WarnOnFail(err)
+					continue
+				}
+
+				file, err := os.Open(filename)
+				if err != nil {
+					errorutils.WarnOnFail(err)
+					continue
+				}
+				defer file.Close()
+				var w io.Writer = os.Stdout
+				if ctx.Bool("overwrite") {
+					w = file
+				}
+
+				cleanLines(file, regex, w)
 			}
 
-			file, err := os.Open(filename)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", filename, err)
-				continue
-			}
-			defer file.Close()
-
-			cleanLines(file, regex)
-		}
-
+			return nil
+		},
 	}
+
+	app.Run(os.Args)
 }
 
-func cleanLines(r io.Reader, regex *regexp.Regexp) {
+var appFlags []cli.Flag = []cli.Flag{
+	&cli.BoolFlag{
+		Name:    "debug",
+		Aliases: []string{"d"},
+		Usage:   "activates debugging messages",
+		Action: func(ctx *cli.Context, shouldDebug bool) error {
+			if shouldDebug {
+				logrus.SetLevel(logrus.DebugLevel)
+			}
+			return nil
+
+		},
+	},
+	&cli.BoolFlag{
+		Name:    "files",
+		Aliases: []string{"f"},
+		Usage:   "arguments are `PATHS...` to files to change",
+	},
+	&cli.BoolFlag{
+		Name:    "overwrite",
+		Aliases: []string{"o"},
+		Usage:   "explicitly change files, if not set -f will print to stdin",
+	},
+}
+
+func cleanLines(r io.Reader, regex *regexp.Regexp, w io.Writer) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Text()
 		cleanedLine := regex.ReplaceAllString(line, "")
-		fmt.Println(cleanedLine)
+		fmt.Fprintln(w, cleanedLine)
 	}
 }
