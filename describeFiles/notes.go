@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"strings"
@@ -27,11 +29,14 @@ func main() {
 		tellUSR("Looking for notes in this directory:")
 		rows, err := retrieveNotesTable()
 		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				tellUSR("no notes in current directory")
+				os.Exit(1)
+			}
 			tellUSR("Error reading notes file:", err.Error())
 			os.Exit(1)
-			panic("error reading note: " + err.Error())
 		}
-		descriptions := showTable(rows)
+		descriptions := showTable(rows) //bubbletea model
 		if _, err := tea.NewProgram(model{descriptions}).Run(); err != nil {
 			fmt.Println("Error running program:", err)
 			os.Exit(1)
