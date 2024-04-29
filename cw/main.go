@@ -78,7 +78,9 @@ func unset(request []string) {
 
 	aliases := readAliases()
 	bookmarks, keys := extractBM(aliases)
+	var dest string
 	for _, key := range request {
+		dest += bookmarks[key] + " "
 		delete(bookmarks, key)
 	}
 	slices.Sort(keys)
@@ -87,7 +89,7 @@ func unset(request []string) {
 		keys = remove(keys, key)
 	}
 	WriteFile(keys, bookmarks)
-	fmt.Printf("Bookmarks matching the requested registers have been deleted\nRequested: %s\n", request)
+	fmt.Printf("Bookmarks matching the requested registers have been deleted\nRequested: %s\nLocations Removed: %s\n", request, dest)
 }
 
 // list lists all the bookmarks
@@ -185,7 +187,7 @@ func readAliases() []string {
 	aliases := make([]string, 0)
 	for _, line := range lines {
 		//if the line does not contain the key, add it to the new lines
-		if strings.Contains(line, "alias") {
+		if strings.HasPrefix(line, "alias") {
 			aliases = append(aliases, line)
 		}
 	}
@@ -198,8 +200,8 @@ func giveHeader() string {
 # see github.com/jmonroynieto/cw for more information
 # To use the bookmarks, source this file in your .bashrc or .zshrc
 
-setP() { loc=${2:-$(pwd)}; cw set ${1} ${loc}; }
-unsetP() { cw unset ${1}; }
+setP() { loc=${2:-$(pwd)}; cw set ${1} ${loc}; source ~/.cw_bookmarks.sh ; }
+unsetP() { cw unset ${@}; for key in ${@}; do unalias cw${key} ; done ; }
 showP() { cw list; }
 
 

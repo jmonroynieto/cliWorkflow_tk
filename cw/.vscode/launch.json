@@ -9,9 +9,18 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
-            //"args": ["set", "w", "~/worktable"]
-            "args": ["list"]
-        }
+            "program": "${workspaceFolder}",
+            "args": ["set", "6", "~/worktable"],
+            //"args": ["list"]
+        },
+        {
+            "name": "unset",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": ["unset", "6", "7"],
+            //"args": ["list"]
+        },
     ]
 }
