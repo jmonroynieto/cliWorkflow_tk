@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/pydpll/errorutils"
 )
 
@@ -57,7 +58,19 @@ func set(args []string) {
 	bookmarks, keys := extractBM(aliases)
 	//check if the key is already in use
 	if _, ok := bookmarks[key]; ok {
-		fmt.Printf("Warning: replacing bookmark %s. Old path: %s, new path: %s\n", key, bookmarks[key], newPath)
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Title(fmt.Sprintf("Warning: overwriting cw%s pick which one to keep\n", key)).
+					Options(
+						huh.NewOption(bookmarks[key], bookmarks[key]),
+						huh.NewOption(newPath, newPath),
+					).
+					Value(&newPath),
+			))
+			form.WithTheme(huh.ThemeBase())
+		err := form.Run()
+		errorutils.WarnOnFail(err)
 	} else {
 		fmt.Printf("Bookmark %s set to %s\n", key, newPath)
 	}
