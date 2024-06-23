@@ -1,4 +1,4 @@
-go 1.22.0
+go 1.22.3
 
 use (
 	./ansCRUBi
@@ -8,9 +8,11 @@ use (
 	./cw
 	./describeFiles
 	./dripC
+	./fickleFinger
 	./filterMyCal
 	./indexFiles
 	./kompti
+	./mdMake
 	./quoteadder
 	./watchAdir
 	./zustellen

@@ -1,22 +1,26 @@
+2023-Feb-22 20:26:29	calshow/	prints calendar import file in readable week format
+
+2024-Feb-11 10:01:05	chaptor/	scrape and format chapters into html for kindlesend
+
+2024-Feb-21 22:09:43	mdMake/	Transcribe TSV into Markdown tables
+
 2023-Feb-22 20:28:15	watchAdir/	gives notifications of files created
-
-2024-Feb-04 10:31:17	cw/	Terminal bookmark system
-
-2023-Feb-22 20:26:53	describeFiles/	creates file descriptions such as this one the file can exist or not
 
 2023-Feb-22 20:28:06	quoteadder/	adds cuotes to be used with lemnos/tt
 
 2023-Feb-22 20:26:14	barker/	sends email when file is created
 
-2024-Feb-11 12:09:56	kompti/	Custom timestamp
+2024-Feb-23 17:38:19	fickleFinger/	fulfills workflow steps relying in RNGs
 
-2023-Feb-22 20:26:29	calshow/	prints calendar import file in readable week format
+2023-Feb-22 20:26:53	describeFiles/	creates file descriptions such as this one the file can exist or not
+
+2024-Feb-31 10:32:48	ansCRUBi/	cleans ansi characters from text. stdin or files
 
 2023-Feb-22 20:27:33	filterMyCal/	take out iterms of csv calendar import file
 
 2023-Feb-22 20:27:21	dripC/	color output randomly, useful for cat or if the output is hard to parse when wrapped
 
-2024-Feb-11 10:01:05	chaptor/	scrape and format chapters into html for kindlesend
+2024-Feb-04 10:31:17	cw/	Terminal bookmark system
 
-2024-Feb-31 10:32:48	ansCRUBi/	cleans ansi characters from text. stdin or files
+2024-Feb-11 12:09:56	kompti/	Custom timestamp
 
