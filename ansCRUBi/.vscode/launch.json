@@ -8,8 +8,8 @@
         "type": "go",
         "request": "launch",
     "program": "${workspaceFolder}",
+    "args": ["-o", "-f", "../x.txt"],
     //"args": ["<", "$(printf '^[[31mf100522240^[[0m\n^[[31mf100560640^[[0m\n^[[31mf100599296^[[0m\n^[[31mf100791808^[[0m\n^[[31mf100829952^[[0m\n^[[31mf100868096^[[0m\n^[[31mf100906240^[[0m\n^[[31mf100983040^[[0m\n^[[31mf101098240^[[0m\n')"],
-    "externalConsole": true,
 }
     ]
 }
