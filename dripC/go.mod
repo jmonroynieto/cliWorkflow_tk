@@ -1,3 +1,3 @@
-module github.com/jmonroynieto/cliWorkflow_tk/dripC
+module dripC
 
-go 1.22
+go 1.23.0

@@ -1,3 +1,3 @@
-module github.com/jmonroynieto/cliWorkflow_tk/kompti
+module kompti
 
-go 1.22
+go 1.23.0

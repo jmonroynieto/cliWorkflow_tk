@@ -1,6 +1,6 @@
-module github.com/jmonroynieto/cliWorkflow_tk/filterMyCal
+module filterMyCal
 
-go 1.22
+go 1.23.0
 
 require github.com/pydpll/errorutils v0.0.2-beta
 
