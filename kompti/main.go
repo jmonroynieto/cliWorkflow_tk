@@ -9,7 +9,7 @@ import (
 const (
 	colorOrange = "\033[38;5;214m"
 	colorReset  = "\033[0m"
-	helpText    = `tactTime requires month and year in any of a variety of formats. When no arguments are provided, current time is printed`
+	helpText    = `kompti requires month and year in any of a variety of formats. When no arguments are provided, current time is printed`
 )
 
 var (
