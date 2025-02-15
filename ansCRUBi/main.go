@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,33 +10,33 @@ import (
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
-	Version  = "1.1.1"
+	Version  = "1.2.0"
 	CommitId string
 )
 
 func main() {
 	regex := regexp.MustCompile(`\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])`)
 
-	app := &cli.App{
+	app := &cli.Command{
 		Name:      "ansCRUBi",
 		UsageText: "ansCRUBi [-o] [-f files...]",
 		Usage:     "Removes ansi control characters left over from colorized commands",
 		Flags:     appFlags,
 		Version:   fmt.Sprintf("%s - %s", Version, CommitId),
-		Action: func(ctx *cli.Context) error {
+		Action: func(ctx context.Context, cmd *cli.Command) error {
 			// piping only
-			if a := ctx.Args().First(); !ctx.IsSet("files") && (a == "-" || a == "") {
+			if a := cmd.Args().First(); !cmd.IsSet("files") && (a == "-" || a == "") {
 				cleanLines(os.Stdin, regex, os.Stdout)
-			} else if ctx.Args().Len() > 0 && !ctx.Bool("files") {
-				return errorutils.NewReport(fmt.Sprintf("ERROR: unknown arguments: %q", ctx.Args()), "m700KwVadVJ")
-			} else if len(ctx.StringSlice("files")) == 0 {
+			} else if cmd.Args().Len() > 0 && !cmd.Bool("files") {
+				return errorutils.NewReport(fmt.Sprintf("ERROR: unknown arguments: %q", cmd.Args()), "m700KwVadVJ")
+			} else if len(cmd.StringSlice("files")) == 0 {
 				return errorutils.NewReport("ERROR: no files provided", "VLsmXBwQrya")
 			}
-			for _, filename := range ctx.StringSlice("files") {
+			for _, filename := range cmd.StringSlice("files") {
 				if _, err := os.Stat(filename); os.IsNotExist(err) {
 					errorutils.WarnOnFail(err, errorutils.WithMsg("origin file "+filename+" does not exist"))
 					continue
@@ -47,7 +48,7 @@ func main() {
 					continue
 				}
 				var w = os.Stdout
-				if ctx.Bool("overwrite") {
+				if cmd.Bool("overwrite") {
 					w = origin
 				}
 
@@ -58,7 +59,7 @@ func main() {
 		},
 	}
 
-	app.Run(os.Args)
+	app.Run(context.Background(), os.Args)
 }
 
 var appFlags []cli.Flag = []cli.Flag{
@@ -66,7 +67,7 @@ var appFlags []cli.Flag = []cli.Flag{
 		Name:    "debug",
 		Aliases: []string{"d"},
 		Usage:   "activates debugging messages",
-		Action: func(ctx *cli.Context, shouldDebug bool) error {
+		Action: func(ctx context.Context, cmd *cli.Command, shouldDebug bool) error {
 			if shouldDebug {
 				logrus.SetLevel(logrus.DebugLevel)
 			}

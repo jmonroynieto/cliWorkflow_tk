@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -8,31 +9,31 @@ import (
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
-	Version    = "1.1.1"
+	Version    = "1.2.0"
 	CommitId   string
 	ignorable  []*regexp.Regexp
-	workersNum int
+	workersNum int64
 )
 
 func main() {
 	sort.Sort(cli.FlagsByName(appFlags))
 
-	app := &cli.App{
+	app := &cli.Command{
 		Name:    "indexFiles",
 		Usage:   "recursive, parallel sha1sum for files and symlinks in directory",
 		Flags:   appFlags,
 		Version: fmt.Sprintf("%s - %s", Version, CommitId),
-		Action: func(ctx *cli.Context) error {
-			run(ctx.String("examine"), ctx.String("output"))
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			run(cmd.String("examine"), cmd.String("output"))
 			return nil
 		},
 	}
 
-	err := app.Run(os.Args)
+	err := app.Run(context.Background(), os.Args)
 	errorutils.WarnOnFail(err, errorutils.WithMsg("app failed execution"))
 }
 
@@ -41,7 +42,7 @@ var appFlags []cli.Flag = []cli.Flag{
 		Name:    "debug",
 		Aliases: []string{"d"},
 		Usage:   "activates debugging messages",
-		Action: func(ctx *cli.Context, shouldDebug bool) error {
+		Action: func(ctx context.Context, cmd *cli.Command, shouldDebug bool) error {
 			if shouldDebug {
 				logrus.SetLevel(logrus.DebugLevel)
 			}
@@ -65,7 +66,7 @@ var appFlags []cli.Flag = []cli.Flag{
 		Name:    "ignoreRegexes",
 		Aliases: []string{"x"},
 		Usage:   "`FILE` listing regex filenames to ignore",
-		Action: func(ctx *cli.Context, path string) error {
+		Action: func(ctx context.Context, cmd *cli.Command, path string) error {
 			var e error
 			ignorable, e = getIgnoreRegexes(path)
 			return e

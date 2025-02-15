@@ -1,22 +1,23 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand/v2"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
-	n         int // number of characters to generate
+	n         int64 // number of characters to generate
 	noNewline bool
 )
 
-func generateID(cCtx *cli.Context) error {
+func generateID(cCtx context.Context, cmd *cli.Command) error {
 
 	var b = make([]byte, 0, n)
 	var formatTemplate string
-	for len(b) < n {
+	for len(b) < int(n) {
 		num := rand.N(122)
 		if isInRange(num) {
 			b = append(b, byte(num))

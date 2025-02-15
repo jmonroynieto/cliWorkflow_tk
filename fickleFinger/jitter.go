@@ -1,19 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand/v2"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
-	aAmount int
-	bStart  int
-	cEnd    int
+	aAmount int64
+	bStart  int64
+	cEnd    int64
 )
 
-func generateJitter(c *cli.Context) error {
+func generateJitter(c context.Context, cmd *cli.Command) error {
 	numbers := generateNumbers(aAmount, float64(bStart), float64(cEnd))
 
 	// Print the generated numbers
@@ -51,13 +52,13 @@ var jitterFlags []cli.Flag = []cli.Flag{
 	},
 }
 
-func generateNumbers(amount int, start, end float64) []float64 {
+func generateNumbers(amount int64, start, end float64) []float64 {
 	rangeSize := float64(end - start)
 	numbers := make([]float64, 0, amount)
 	first := start + rand.Float64()*rangeSize
 	numbers = append(numbers, first)
 
-	for len(numbers) < amount {
+	for len(numbers) < int(amount) {
 		var next float64
 		for {
 			next = start + rand.Float64()*rangeSize

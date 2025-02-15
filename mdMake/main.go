@@ -2,12 +2,26 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
 )
 
+var (
+	CommitID string
+	Version  = "1.2.0"
+)
+
 func main() {
+	//flag for version -v
+	PrintVersion := flag.Bool("v", false, "version")
+	flag.BoolVar(PrintVersion, "version", false, "version")
+	flag.Parse()
+	if *PrintVersion {
+		fmt.Println("Version:", Version, " CommitID:", CommitID)
+		os.Exit(0)
+	}
 	// Read input from stdin
 	scanner := bufio.NewScanner(os.Stdin)
 	var lines [][]string

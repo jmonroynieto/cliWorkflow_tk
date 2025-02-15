@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -48,8 +47,8 @@ var app = cli.Command{
 		currDir, err := os.Getwd()
 		errorutils.ExitOnFail(err, errorutils.WithMsg("failed to get current directory"))
 
-		// Create a lock to protect the directory.
-		lock := &sync.Mutex{}
+		//locking to protect the directory not necessary
+		//lock := &sync.Mutex{}
 
 		// Watch the current directory for new files.
 		watcher, err := fsnotify.NewWatcher()
@@ -67,10 +66,6 @@ var app = cli.Command{
 		// Start a goroutine to watch for new files.
 		go func() {
 			for {
-				// Lock the directory.
-				lock.Lock()
-				defer lock.Unlock()
-
 				// Watch for events.
 				for event := range watcher.Events {
 					switch event.Op {

@@ -8,6 +8,7 @@ TODO
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -20,19 +21,19 @@ import (
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	"golang.org/x/net/html"
 )
 
 var (
-	Version  = "1.1.1"
+	Version  = "1.2.0"
 	CommitId string
 )
 
 func main() {
 	var urlFile string
 	sleepTime := 6 * time.Second
-	app := &cli.App{
+	app := &cli.Command{
 		Name:    "chaptor",
 		Usage:   "Royal road chapter extraction",
 		Version: fmt.Sprintf("%s - %s", Version, CommitId),
@@ -41,7 +42,7 @@ func main() {
 				Name:    "debug",
 				Aliases: []string{"d"},
 				Usage:   "activates debugging messages",
-				Action: func(ctx *cli.Context, shouldDebug bool) error {
+				Action: func(ctx context.Context, cmd *cli.Command, shouldDebug bool) error {
 					if shouldDebug {
 						logrus.SetLevel(logrus.DebugLevel)
 					}
@@ -53,8 +54,8 @@ func main() {
 			{
 				Name:  "single",
 				Usage: "Extract a single",
-				Action: func(cCtx *cli.Context) error {
-					list := cCtx.Args().Slice()
+				Action: func(cCtx context.Context, cmd *cli.Command) error {
+					list := cmd.Args().Slice()
 					_, content := requestchapter(list[0])
 					saveFile(content)
 					return nil
@@ -63,7 +64,7 @@ func main() {
 			{
 				Name:  "many",
 				Usage: "complete a task on the list",
-				Action: func(cCtx *cli.Context) error {
+				Action: func(cCtx context.Context, cmd *cli.Command) error {
 					pagebreak := `<mbp:pagebreak />
 `
 					var urlList []string = make([]string, 0, 30)
@@ -81,7 +82,7 @@ func main() {
 							urlList = append(urlList, scanner.Text())
 						}
 					} else {
-						urlList = cCtx.Args().Slice()
+						urlList = cmd.Args().Slice()
 					}
 
 					file, err := os.OpenFile(selectFile("chapter"), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
@@ -137,14 +138,14 @@ func main() {
 			},
 			{
 				Name: "remind",
-				Action: func(cCtx *cli.Context) error {
+				Action: func(cCtx context.Context, cmd *cli.Command) error {
 					printMyJS()
 					return nil
 				},
 			},
 			{
 				Name: "updateFilter",
-				Action: func(cCtx *cli.Context) error {
+				Action: func(cCtx context.Context, cmd *cli.Command) error {
 					fmt.Println(generateFilter())
 					fmt.Printf("Working with filterID %s.\nRememeber to change the id in filer.go when updating it.\n", filterID)
 					return nil
@@ -154,7 +155,7 @@ func main() {
 		},
 	}
 
-	runningErr := app.Run(os.Args)
+	runningErr := app.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(runningErr)
 
 }

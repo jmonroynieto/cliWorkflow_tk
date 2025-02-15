@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	Version  = "1.1.1"
+	Version  = "1.2.0"
 	CommitId string
 )
 
@@ -68,7 +68,7 @@ func set(args []string) {
 					).
 					Value(&newPath),
 			))
-			form.WithTheme(huh.ThemeBase())
+		form.WithTheme(huh.ThemeBase())
 		err := form.Run()
 		errorutils.WarnOnFail(err)
 	} else {

@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"strings"
-	"time"
 )
+
+var color string
+var old string
 
 var colors = []string{
 	"\033[31m",       // Red
@@ -44,21 +46,16 @@ func main() {
 	fmt.Print("\033[0m")
 }
 
+// allows for the keyword to be upper or lowercase and used as an argument or flag
 func prep(opt string) string {
-	opt = strings.ToUpper(os.Args[1])
-	opt = strings.Replace(opt, "-", "", -1)
+	opt = strings.ToUpper(opt)
+	opt = strings.ReplaceAll(opt, "-", "")
 	return opt
 }
 
-// state machinge, sorry about the global
-var color string
-var old string
-
 func changeColor() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	old = color
-	c := colors[r.Intn(len(colors))]
+	c := colors[rand.IntN(len(colors))]
 	if c != old {
 		color = c
 		fmt.Printf("%s", color)

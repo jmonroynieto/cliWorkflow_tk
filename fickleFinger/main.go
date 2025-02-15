@@ -1,21 +1,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
-	Version  = "0.1"
+	Version  = "1.2.0"
 	CommitId = ""
 )
 
 func main() {
 
-	app := &cli.App{
+	app := &cli.Command{
 		Name:     "fickeFinger",
 		Usage:    "custon random value generator",
 		Flags:    appFlags,
@@ -23,7 +24,7 @@ func main() {
 		Version:  fmt.Sprintf("%s - %s", Version, CommitId),
 	}
 
-	app.Run(os.Args)
+	app.Run(context.Background(), os.Args)
 }
 
 var appFlags []cli.Flag = []cli.Flag{
@@ -31,7 +32,7 @@ var appFlags []cli.Flag = []cli.Flag{
 		Name:    "debug",
 		Aliases: []string{"d"},
 		Usage:   "activates debugging messages",
-		Action: func(ctx *cli.Context, shouldDebug bool) error {
+		Action: func(ctx context.Context, cmd *cli.Command, shouldDebug bool) error {
 			if shouldDebug {
 				logrus.SetLevel(logrus.DebugLevel)
 			}

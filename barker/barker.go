@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -9,17 +10,17 @@ import (
 	"github.com/go-mail/mail"
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
-	Version  = "1.1.1"
+	Version  = "1.2.0"
 	CommitId string
 )
 
 func main() {
 	sort.Sort(cli.FlagsByName(appFlags))
-	app := &cli.App{
+	app := &cli.Command{
 		Name:     "name",
 		Usage:    "usage",
 		Flags:    appFlags,
@@ -27,7 +28,7 @@ func main() {
 		Version:  fmt.Sprintf("%s - %s", Version, CommitId),
 	}
 
-	app.Run(os.Args)
+	app.Run(context.Background(), os.Args)
 }
 
 var appFlags []cli.Flag = []cli.Flag{
@@ -35,7 +36,7 @@ var appFlags []cli.Flag = []cli.Flag{
 		Name:    "debug",
 		Aliases: []string{"d"},
 		Usage:   "activates debugging messages",
-		Action: func(ctx *cli.Context, shouldDebug bool) error {
+		Action: func(ctx context.Context, cmd *cli.Command, shouldDebug bool) error {
 			if shouldDebug {
 				logrus.SetLevel(logrus.DebugLevel)
 			}
@@ -73,12 +74,12 @@ var appCmds []*cli.Command = []*cli.Command{
 	},
 }
 
-func action1(ctx *cli.Context) error {
-	file := ctx.String("dir")
-	recipient := ctx.String("recipient")
-	walltime := ctx.Int("walltime")
+func action1(ctx context.Context, cmd *cli.Command) error {
+	file := cmd.String("dir")
+	recipient := cmd.String("recipient")
+	walltime := cmd.Int("walltime")
 	//when template is specified, print the template and exit
-	if ctx.Bool("exp") {
+	if cmd.Bool("exp") {
 		fmt.Println("export SMTP_SENDER=\"\"")
 		fmt.Println("export SMTP_PASSWORD=\"\"")
 		os.Exit(0)
@@ -136,7 +137,7 @@ LOOP:
 	for {
 		select {
 		case <-wt.C:
-			ranOutOfTime(walltime)
+			ranOutOfTime(int(walltime))
 		case <-tick.C:
 			info, err2 = os.Stat(file)
 			if err2 == nil {
