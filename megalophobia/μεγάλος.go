@@ -4,8 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"sync"
 	"time"
+
+	"github.com/pydpll/errorutils"
+	"github.com/sirupsen/logrus"
+	terminal "golang.org/x/term"
 )
 
 var (
@@ -15,12 +20,23 @@ var (
 	pipeReader       *os.File
 	pipeWriter       *os.File
 	stopChan         chan struct{}
+	lineChan         chan string
 	wg               sync.WaitGroup
 	lastDisplayLines int
 )
 
-// SetupCapture redirects stdout to a pipe and starts the capture goroutine.
+func AsyncUpdateBuffer() {
+	bufferMutex.Lock()
+	defer bufferMutex.Unlock()
+	for line := range lineChan {
+		updateBuffer(line)
+		displayBuffer()
+	}
+}
+
+// SetupCapture redirects stdout to a pipe and starts the *[CONCURRENT]* capture goroutine.
 func SetupCapture() error {
+	lineChan = make(chan string)
 	var err error
 	origStdout = os.Stdout
 	pipeReader, pipeWriter, err = os.Pipe()
@@ -34,33 +50,57 @@ func SetupCapture() error {
 	return nil
 }
 
-// captureOutput reads from the pipe and updates the display window.
 func captureOutput() {
 	defer wg.Done()
-	scanner := bufio.NewScanner(pipeReader)
+	scanner := bufio.NewScanner(os.Stdin)
+chanWatcher:
 	for {
 		select {
 		case <-stopChan:
-			return
+			close(lineChan)
+			break chanWatcher
 		default:
 			if scanner.Scan() {
-				updateBuffer(scanner.Text())
-				displayBuffer()
+				lineChan <- scanner.Text()
 			} else {
 				time.Sleep(10 * time.Millisecond)
 			}
 		}
 	}
+	if scanner.Err() != nil {
+		logrus.Error(scanner.Err())
+	}
 }
 
 // updateBuffer appends a new line to the buffer — keeping only the last three lines.
-func updateBuffer(line string) {
-	bufferMutex.Lock()
-	defer bufferMutex.Unlock()
+func updateBuffer(line string) (changed bool) {
+
+	if line == "" {
+		return false
+	}
+	for _, existingLine := range stdoutBuffer {
+		// skip the line's timestamp when updating the buffer start at [...
+		//2025-02-27 17:35:55 [INFO] Running jobs — [02/7157a4 16/3a6f0a a1/83bb29 c6/7a55a2]
+		rg := regexp.MustCompile(`^.{20}\[.*([A-Z]{4})\.*].*`)
+		if isLog := rg.MatchString(line); isLog && existingLine[20:] == line[20:] {
+			return false
+		} else if existingLine == line {
+			return false
+		}
+	}
+
 	stdoutBuffer = append(stdoutBuffer, line)
 	if len(stdoutBuffer) > 3 {
 		stdoutBuffer = stdoutBuffer[len(stdoutBuffer)-3:]
 	}
+	return true
+}
+
+func truncateLine(line string, maxWidth int) string {
+	if len(line) > maxWidth-3 {
+		return line[:maxWidth-3] + "…"
+	}
+	return line
 }
 
 // displayBuffer overwrites the previous display using ANSI escape codes.
@@ -71,6 +111,12 @@ func displayBuffer() {
 
 	bufferMutex.Lock()
 	defer bufferMutex.Unlock()
+	maxWidth, _, err := terminal.GetSize(int(origStdout.Fd()))
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		lineChan <- fmt.Sprintf("Terminal width: %d", maxWidth)
+		displayBuffer()
+	}
+	errorutils.WarnOnFail(err)
 
 	if lastDisplayLines > 0 {
 		fmt.Fprintf(origStdout, "\033[%dA", lastDisplayLines) // Move cursor up
@@ -85,37 +131,16 @@ func displayBuffer() {
 	lines = append(lines, footer)
 
 	for _, line := range lines {
-		fmt.Fprintf(origStdout, "%-80s\n", line) // Ensure fixed width for stability
+		fmt.Fprintf(origStdout, "%-80s\n", truncateLine(line, maxWidth)) // Ensure fixed width for stability
 	}
 	lastDisplayLines = len(lines)
 }
 
-// func displayBuffer() {
-// 	bufferMutex.Lock()
-// 	defer bufferMutex.Unlock()
-// 	if lastDisplayLines > 0 {
-// 		// Move cursor up by lastDisplayLines, clear each line, and return to start.
-// 		fmt.Fprintf(origStdout, "\033[%dA", lastDisplayLines)
-// 		for i := 0; i < lastDisplayLines; i++ {
-// 			fmt.Fprint(origStdout, "\033[2K\033[1B")
-// 		}
-// 		fmt.Fprintf(origStdout, "\033[%dA", lastDisplayLines)
-// 	}
-// 	// Build and print the new display block.
-// 	lines := []string{header}
-// 	lines = append(lines, stdoutBuffer...)
-// 	lines = append(lines, footer)
-// 	for _, line := range lines {
-// 		fmt.Fprintln(origStdout, line)
-// 	}
-// 	lastDisplayLines = len(lines)
-// }
-
 // TeardownCapture stops capturing and restores the original stdout.
 func TeardownCapture() error {
 	close(stopChan)
-	pipeWriter.Close()
 	wg.Wait()
+	pipeWriter.Close()
 	os.Stdout = origStdout
 	clearDisplayWindow()
 	return nil
