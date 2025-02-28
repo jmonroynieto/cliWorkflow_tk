@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -69,7 +70,6 @@ func tool(ctx context.Context, cmd *cli.Command) error {
 	err := SetupCapture()
 	go AsyncUpdateBuffer()
 	errorutils.ExitOnFail(err, errorutils.WithMsg("Failed to setup capture: "))
-	defer TeardownCapture()
 	interrupted := make(chan os.Signal, 1)
 	signal.Notify(interrupted, syscall.SIGINT)
 
@@ -81,8 +81,16 @@ func tool(ctx context.Context, cmd *cli.Command) error {
 		}
 	}()
 	//reading loop
+	var userinput string
 	for running {
-		wg.Wait()
+		_, err = fmt.Scanln(&userinput)
+		if err != nil {
+			fmt.Printf("\033[31mmegalophobia error: \033[0m%s", err.Error())
+			fmt.Printf("input: %#v\n", userinput)
+			continue
+		}
+		fmt.Println(userinput)
 	}
+
 	return nil
 }

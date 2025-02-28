@@ -6,7 +6,6 @@ import (
 	"os"
 	"regexp"
 	"sync"
-	"time"
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
@@ -29,14 +28,18 @@ func AsyncUpdateBuffer() {
 	bufferMutex.Lock()
 	defer bufferMutex.Unlock()
 	for line := range lineChan {
-		updateBuffer(line)
-		displayBuffer()
+		changed := updateBuffer(line)
+		if changed {
+			displayBuffer()
+		}
 	}
+	pipeWriter.Close()
+	TeardownCapture()
 }
 
 // SetupCapture redirects stdout to a pipe and starts the *[CONCURRENT]* capture goroutine.
 func SetupCapture() error {
-	lineChan = make(chan string)
+	lineChan = make(chan string, 30)
 	var err error
 	origStdout = os.Stdout
 	pipeReader, pipeWriter, err = os.Pipe()
@@ -44,26 +47,29 @@ func SetupCapture() error {
 		return err
 	}
 	os.Stdout = pipeWriter
-	stopChan = make(chan struct{})
+	stopChan = make(chan struct{}, 2)
 	wg.Add(1)
-	go captureOutput()
+	go captureOutput(pipeReader)
 	return nil
 }
 
-func captureOutput() {
+func captureOutput(pr *os.File) {
 	defer wg.Done()
-	scanner := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(pr)
 chanWatcher:
 	for {
 		select {
-		case <-stopChan:
+		case _, more := <-stopChan:
 			close(lineChan)
-			break chanWatcher
+			if !more {
+				break chanWatcher
+			}
 		default:
 			if scanner.Scan() {
-				lineChan <- scanner.Text()
+				inspectLine := scanner.Text()
+				lineChan <- inspectLine
 			} else {
-				time.Sleep(10 * time.Millisecond)
+				continue
 			}
 		}
 	}
@@ -109,12 +115,10 @@ func displayBuffer() {
 	footer := "\033[1;32m--- End Display --------------\033[0m"
 	clearLine := "\033[2K" // Clear the entire line
 
-	bufferMutex.Lock()
-	defer bufferMutex.Unlock()
 	maxWidth, _, err := terminal.GetSize(int(origStdout.Fd()))
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		lineChan <- fmt.Sprintf("Terminal width: %d", maxWidth)
-		displayBuffer()
+		logrus.Debugf("Terminal width: %d", maxWidth)
+		lastDisplayLines += 1
 	}
 	errorutils.WarnOnFail(err)
 
@@ -138,9 +142,7 @@ func displayBuffer() {
 
 // TeardownCapture stops capturing and restores the original stdout.
 func TeardownCapture() error {
-	close(stopChan)
 	wg.Wait()
-	pipeWriter.Close()
 	os.Stdout = origStdout
 	clearDisplayWindow()
 	return nil
