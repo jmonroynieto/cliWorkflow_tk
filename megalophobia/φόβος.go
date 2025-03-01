@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/pydpll/errorutils"
@@ -11,9 +12,7 @@ import (
 )
 
 func phobia(ctx context.Context, cmd *cli.Command) error {
-	err := SetupCapture()
-	errorutils.ExitOnFail(err)
-	go AsyncUpdateBuffer()
+	logrus.SetOutput(os.Stderr)
 	var sentinel int
 	strings := []string{
 		"Program starting...",
@@ -26,12 +25,12 @@ func phobia(ctx context.Context, cmd *cli.Command) error {
 		"Is it just me or does the autoclave sound angrier today?",
 		"Pretty sure I just pipetted air.  Into the cell culture. Oops.",
 		"Myoglobin smells faintly of...regret?",
-		"Experiment 'Unforeseen Protein Interactions' started.", // Lab Event starts - but just printed now
+		"Experiment 'Unforeseen Protein Interactions' started.",
 		"Note to self: Always double-check buffer pH. Cells now look sad.",
 		"Where did I put the stock solution of GFP?  *Checks fridge, freezer, under desk*",
 		"The gel ran...sideways? Is that even possible?",
 		"Uh oh, the vortex mixer is vibrating its way off the bench.",
-		"Sample 'Mystery Precipitate' analysis initiated.", // Lab Event starts - but just printed now
+		"Sample 'Mystery Precipitate' analysis initiated.",
 		"Pretty sure that wasn't supposed to bubble THAT much.",
 		"Found the GFP. It was in my coat pocket. Classic lab life.",
 		"Okay, who put the sticky notes IN the centrifuge?",
@@ -43,17 +42,24 @@ func phobia(ctx context.Context, cmd *cli.Command) error {
 		"Pretty sure the incubator is judging my experimental design.",
 		"Final line to show the three-line effect clearly.",
 	}
-
+	running, err := SetupCapture() //necessary to run: slots in output pipe, spins up goroutines
+	errorutils.ExitOnFail(err)
+	//Necessary to run: Feeder loop by way of printing to "stdout"
 	for _, s := range strings {
 		fmt.Println(s)
-		sentinel += 1
-		time.Sleep(300 * time.Millisecond)
-		if logrus.IsLevelEnabled(logrus.DebugLevel) {
-			logrus.Debug(fmt.Sprintf("Sentinel: %d", sentinel))
-			lastDisplayLines += 1
+		{ //pacing
+			sentinel += 1
+			time.Sleep(300 * time.Millisecond)
+			if logrus.IsLevelEnabled(logrus.DebugLevel) {
+				logrus.Debug(fmt.Sprintf("Sentinel: %d", sentinel))
+				lastDisplayLines += 1
+			}
+		}
+		if !*running {
+			break
 		}
 	}
-	close(stopChan)
-	wg.Wait()
-	return err
+	FinishCapture() //necessary to run: execution terminator BLOCKING
+	logrus.Debug("All goroutines complete.  Terminating.")
+	return nil
 }

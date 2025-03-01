@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
-	"os/signal"
-	"syscall"
+	"runtime/pprof"
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
@@ -61,36 +64,33 @@ var app = cli.Command{
 }
 
 func main() {
-	err := app.Run(context.Background(), os.Args)
+	go func() {
+		log.Println(http.ListenAndServe(":6060", nil))
+	}()
+	// Create a CPU profile file
+	f, err := os.Create("profile.prof")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	// Start CPU profiling
+	if err := pprof.StartCPUProfile(f); err != nil {
+		panic(err)
+	}
+	err = app.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)
 }
 
 func tool(ctx context.Context, cmd *cli.Command) error {
-	var running bool = true
-	err := SetupCapture()
-	go AsyncUpdateBuffer()
+	running, err := SetupCapture()
 	errorutils.ExitOnFail(err, errorutils.WithMsg("Failed to setup capture: "))
-	interrupted := make(chan os.Signal, 1)
-	signal.Notify(interrupted, syscall.SIGINT)
-
-	go func() {
-		for sig := range interrupted {
-			if sig == syscall.SIGINT {
-				running = false
-			}
-		}
-	}()
 	//reading loop
-	var userinput string
-	for running {
-		_, err = fmt.Scanln(&userinput)
-		if err != nil {
-			fmt.Printf("\033[31mmegalophobia error: \033[0m%s", err.Error())
-			fmt.Printf("input: %#v\n", userinput)
-			continue
-		}
+	scanner := bufio.NewScanner(os.Stdin)
+	for *running && scanner.Scan() {
+		userinput := scanner.Text()
 		fmt.Println(userinput)
 	}
-
+	FinishCapture() //necessary to run: blocks main goroutineCapture()
 	return nil
 }
