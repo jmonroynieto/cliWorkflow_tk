@@ -41,7 +41,7 @@ func SetupCapture() (*bool, error) {
 			for sig := range interrupted {
 				//logrus.Debug("Interrupt signal received")
 				if sig == syscall.SIGINT {
-					fmt.Fprintf(origStdout, "\033[2K\033[1A")
+					fmt.Fprintf(origStdout, "\033[2K\033[G")
 					running = false
 					fmt.Println(ὄλεθροςπάντων)
 					break
@@ -170,7 +170,7 @@ func clearDisplayWindow() {
 			fmt.Fprint(origStdout, "\033[2K\033[1B")
 		}
 		// Move back to the starting position
-		fmt.Fprintf(origStdout, "\033[%dA", lastDisplayLines)
+		fmt.Fprintf(origStdout, "\033[%dA\033[G", lastDisplayLines)
 	}
 }
 

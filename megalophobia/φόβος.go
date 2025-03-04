@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/pydpll/errorutils"
@@ -45,11 +44,11 @@ func phobia(ctx context.Context, cmd *cli.Command) error {
 	}
 	running, err := SetupCapture() //necessary to run: slots in output pipe, spins up goroutines
 	errorutils.ExitOnFail(err)
-	go func() {
-		time.Sleep(2 * time.Second)
-		p, _ := os.FindProcess(os.Getpid())
-		p.Signal(syscall.SIGINT)
-	}()
+	// go func() {
+	// 	time.Sleep(6 * time.Second)
+	// 	p, _ := os.FindProcess(os.Getpid())
+	// 	p.Signal(syscall.SIGINT)
+	// }()
 	//Necessary to run: Feeder loop by way of printing to "stdout"
 	for _, s := range strings {
 		fmt.Println(s)

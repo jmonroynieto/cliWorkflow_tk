@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	_ "net/http/pprof"
 	"os"
 
 	"github.com/pydpll/errorutils"
