@@ -11,7 +11,8 @@
             "mode": "auto",
             "program": "${workspaceFolder}",
             "console": "integratedTerminal",
-            "args": ["-d", "demo", ">", "/dev/null"],
+            "args": [ "demo"],
+            "stopOnEntry": true,
         },
         {
             "name": "colored",
@@ -25,7 +26,7 @@
             },
             "args": [
                 "-d"
-            ],
+            ]
         }
     ]
 }

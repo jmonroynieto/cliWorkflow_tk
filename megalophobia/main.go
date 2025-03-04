@@ -4,11 +4,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"log"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"runtime/pprof"
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
@@ -16,7 +13,7 @@ import (
 )
 
 var (
-	CommitID string
+	CommitId string
 )
 
 func init() {
@@ -28,7 +25,7 @@ func init() {
 			}
 			os.Stdin = f
 			return nil
-		}("test2.txt")
+		}("test3.txt")
 		if err != nil {
 			panic(err)
 		}
@@ -39,7 +36,7 @@ var app = cli.Command{
 	Name:        "megalophobia",
 	Description: "Makes a three line window to display info, input is meant to be human paced. No scrolling",
 	Action:      tool,
-	Version:     "v0.0.1 - commit: " + CommitID,
+	Version:     "v0.0.1 - commit: " + CommitId,
 	Commands: []*cli.Command{
 		{
 			Name:        "demo",
@@ -64,21 +61,21 @@ var app = cli.Command{
 }
 
 func main() {
-	go func() {
-		log.Println(http.ListenAndServe(":6060", nil))
-	}()
-	// Create a CPU profile file
-	f, err := os.Create("profile.prof")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
+	// go func() {
+	// 	log.Println(http.ListenAndServe(":6060", nil))
+	// }()
+	// // Create a CPU profile file
+	// f, err := os.Create("profile.prof")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer f.Close()
 
-	// Start CPU profiling
-	if err := pprof.StartCPUProfile(f); err != nil {
-		panic(err)
-	}
-	err = app.Run(context.Background(), os.Args)
+	// // Start CPU profiling
+	// if err := pprof.StartCPUProfile(f); err != nil {
+	// 	panic(err)
+	// }
+	err := app.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)
 }
 

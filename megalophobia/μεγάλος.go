@@ -36,7 +36,6 @@ func SetupCapture() (*bool, error) {
 	{ //handle interrupt
 		interrupted := make(chan os.Signal, 1)
 		signal.Notify(interrupted, syscall.SIGINT)
-
 		go func() {
 			//logrus.Debug("Starting interrupt watcher loop")
 			for sig := range interrupted {
@@ -65,14 +64,15 @@ func SetupCapture() (*bool, error) {
 	os.Stdout = pipeWriter //output swap
 	//workers
 	wg.Add(1)
-	go captureOutput(pipeReader)
-	go asyncUpdateBuffer(lineChan, pipeWriter)
+	go captureOutput()
+	go asyncUpdateBuffer(lineChan)
 	return &running, nil
 }
 
 // sends termination signal and blocks main goroutine
 func FinishCapture() {
-	fmt.Println(ὄλεθροςπάντων)
+	//fmt.Println(ὄλεθροςπάντων) //last ditch effort to close the output
+	pipeWriter.Close()
 	logrus.Debug("Termination signal sent.")
 	close(terminationSignal)
 	wg.Wait() //necessary to run: blocks main goroutine
@@ -82,74 +82,72 @@ func FinishCapture() {
 //main program workers: control flow
 //
 
-func captureOutput(maskFunnel *os.File) {
-	scanner := bufio.NewScanner(maskFunnel)
+func captureOutput() {
+	scanner := bufio.NewScanner(pipeReader)
 	var τέλος bool
-	logrus.Debug("Starting channel watcher loop")
+	logrus.Debug("CAPTURE: Starting channel watcher loop")
 chanWatcher:
 	for {
-		logrus.Debug("Starting  capture loop iteration")
+		logrus.Debug("CAPTURE: Starting capture loop iteration")
 		select {
 		case _, more := <-terminationSignal: // termination sequence
 			if !more {
 				close(lineChan)
-				logrus.Debug("No more termination signals, breaking loop")
+				pipeReader.Close()
+				logrus.Debug("CAPTURE: No more termination signals, breaking loop")
 				break chanWatcher
 			}
 		default:
-			logrus.Debug("Received no termination signal")
+			logrus.Debug("CAPTURE: Received no termination signal")
 			if τέλος {
-				logrus.Debug("Found τέλος previoulsy, no other line will be processed")
+				logrus.Debug("CAPTURE: Found τέλος previously, no other line will be processed")
 				continue
 			}
 			if scanner.Scan() {
-				logrus.Debug("Scanner returned true")
-				//check for the end
+				logrus.Debug("CAPTURE: Scanner returned true")
+				// check for the end
 				if scanner.Text() == ὄλεθροςπάντων {
-					logrus.Debug("Found the end of the output")
+					logrus.Debug("CAPTURE: Found the end of the output")
 					τέλος = true
 					continue
 				}
-				logrus.Debug("the end is not here yet")
+				logrus.Debug("CAPTURE: the end is not here yet")
 				inspectLine := scanner.Text()
-				logrus.Debug("Scanned line: " + inspectLine)
+				logrus.Debug("CAPTURE: Scanned line: " + inspectLine)
 				lineChan <- inspectLine
-				logrus.Debug("Line sent to channel")
+				logrus.Debug("CAPTURE: Line sent to channel")
 				continue
 			}
-			logrus.Debug("Scanner returned false, breaking loop")
-			break chanWatcher
+			logrus.Debug("CAPTURE: Scanner returned false, breaking loop")
 		}
 	}
-	logrus.Debug("Finished capture watcher loop")
+	logrus.Debug("CAPTURE: Finished capture watcher loop")
 	if scanner.Err() != nil {
 		logrus.Error(scanner.Err())
 	}
 }
 
-func asyncUpdateBuffer(feedline chan string, outputMask *os.File) {
+func asyncUpdateBuffer(feedline chan string) {
 	defer func() {
-		logrus.Debug("deferred wg.Done() called in asyncUpdateBuffer")
+		logrus.Debug("ASYUPBF: deferred wg.Done() called")
 		wg.Done()
 	}()
 	bufferMutex.Lock()
 	defer func() {
-		logrus.Debug("deferred writerMutex.Unlock() called in asyncUpdateBuffer")
+		logrus.Debug("ASYUPBF: deferred writerMutex.Unlock() called")
 		bufferMutex.Unlock()
 	}()
 	for line := range feedline {
-		//logrus.Debug("about to call updateBuffer in asyncUpdateBuffer")
+		logrus.Debug("ASYUPBF: about to call updateBuffer")
 		changed := updateBuffer(line)
-		//logrus.Debug("about to check if updateBuffer returned true in asyncUpdateBuffer")
+		logrus.Debug("ASYUPBF: about to check if updateBuffer returned true")
 		if changed {
-			//logrus.Debug("about to call displayBuffer in asyncUpdateBuffer")
+			logrus.Debug("ASYUPBF: about to call displayBuffer")
 			displayBuffer()
 		}
-		//logrus.Debug("about to finish a loop through feedline in asyncUpdateBuffer")
+		logrus.Debug("ASYUPBF: about to finish a loop iteration through feedline")
 	}
-	//logrus.Debug("about to close outputMask in asyncUpdateBuffer")
-	outputMask.Close()
-	//logrus.Debug("about to call teardownCapture in asyncUpdateBuffer")
+	logrus.Debug("ASYUPBF: about to call teardownCapture")
 	teardownCapture()
 }
 
