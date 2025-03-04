@@ -6,6 +6,7 @@ use (
 	./calshow
 	./chaptor
 	./cw
+	./debugFreighter
 	./describeFiles
 	./dripC
 	./fickleFinger
