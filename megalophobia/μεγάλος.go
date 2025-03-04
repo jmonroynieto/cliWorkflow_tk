@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"regexp"
 	"sync"
 	"syscall"
 
@@ -22,106 +21,90 @@ var (
 	pipeReader       *os.File
 	pipeWriter       *os.File
 	//concurrenty
-	lineChan          chan string
 	terminationSignal chan struct{}
 	wg                sync.WaitGroup
 	bufferMutex       sync.Mutex
-	ὄλεθροςπάντων     = "Ὦ χάϝος, ὁ μέγας ἄβυσσος σε κατέφαγεν!" // end of input, terminator
+	ὄλεθροςπάντων     = "Ὦ χάϝος, ὁ μέγας ἄβυσσος σε κατέφαγεν!" // debug end of input, terminator
 )
 
 // redirects stdout to a pipe and starts the *[CONCURRENT]* routines that capture and display the output
-func SetupCapture() (*bool, error) {
-	var running bool = true
-	var err error
-	{ //handle interrupt
-		interrupted := make(chan os.Signal, 1)
-		signal.Notify(interrupted, syscall.SIGINT)
-		go func() {
-			//logrus.Debug("Starting interrupt watcher loop")
-			for sig := range interrupted {
-				//logrus.Debug("Interrupt signal received")
-				if sig == syscall.SIGINT {
-					fmt.Fprintf(origStdout, "\033[2K\033[G")
-					running = false
-					fmt.Println(ὄλεθροςπάντων)
-					break
-				}
-			}
-			//logrus.Debug("Finished interrupt watcher loop")
-		}()
-	}
-	lineChan = make(chan string, 30)
-	terminationSignal = make(chan struct{}, 2)
+func SetupCapture() (running *bool, err error) {
 	origStdout = os.Stdout
 	//set to devnull during debugging
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		origStdout, _ = os.OpenFile(os.DevNull, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	}
+
+	*running = true
+
+	{ //handle interrupt
+		interrupted := make(chan os.Signal, 1)
+		signal.Notify(interrupted, syscall.SIGINT)
+		go func() {
+			for sig := range interrupted {
+				if sig == syscall.SIGINT {
+					*running = false
+					fmt.Fprintf(origStdout, "\033[2K\033[G")
+					fmt.Println(ὄλεθροςπάντων)
+					break
+				}
+			}
+		}()
+	}
+
+	lineChan := make(chan string, 30)
+	terminationSignal = make(chan struct{}, 2)
 	pipeReader, pipeWriter, err = os.Pipe()
 	if err != nil {
-		return &running, err
+		return running, err
 	}
 	os.Stdout = pipeWriter //output swap
+
 	//workers
 	wg.Add(1)
-	go captureOutput()
+	go captureOutput(lineChan)
 	go asyncUpdateBuffer(lineChan)
-	return &running, nil
+	return running, nil
 }
 
-// sends termination signal and blocks main goroutine
 func FinishCapture() {
 	//fmt.Println(ὄλεθροςπάντων) //last ditch effort to close the output
 	pipeWriter.Close()
-	logrus.Debug("Termination signal sent.")
 	close(terminationSignal)
-	wg.Wait() //necessary to run: blocks main goroutine
+	wg.Wait() //blocks main goroutine
 }
 
 //
 //main program workers: control flow
 //
 
-func captureOutput() {
+func captureOutput(funnel chan string) {
 	scanner := bufio.NewScanner(pipeReader)
 	var τέλος bool
-	logrus.Debug("CAPTURE: Starting channel watcher loop")
 chanWatcher:
 	for {
-		logrus.Debug("CAPTURE: Starting capture loop iteration")
 		select {
-		case _, more := <-terminationSignal: // termination sequence
+		case _, more := <-terminationSignal:
 			if !more {
-				close(lineChan)
-				pipeReader.Close()
-				logrus.Debug("CAPTURE: No more termination signals, breaking loop")
+				close(funnel)
 				break chanWatcher
 			}
 		default:
-			logrus.Debug("CAPTURE: Received no termination signal")
 			if τέλος {
-				logrus.Debug("CAPTURE: Found τέλος previously, no other line will be processed")
 				continue
 			}
 			if scanner.Scan() {
-				logrus.Debug("CAPTURE: Scanner returned true")
 				// check for the end
 				if scanner.Text() == ὄλεθροςπάντων {
-					logrus.Debug("CAPTURE: Found the end of the output")
 					τέλος = true
 					continue
 				}
-				logrus.Debug("CAPTURE: the end is not here yet")
 				inspectLine := scanner.Text()
-				logrus.Debug("CAPTURE: Scanned line: " + inspectLine)
-				lineChan <- inspectLine
-				logrus.Debug("CAPTURE: Line sent to channel")
+				funnel <- inspectLine
 				continue
 			}
-			logrus.Debug("CAPTURE: Scanner returned false, breaking loop")
 		}
 	}
-	logrus.Debug("CAPTURE: Finished capture watcher loop")
 	if scanner.Err() != nil {
 		logrus.Error(scanner.Err())
 	}
@@ -129,25 +112,18 @@ chanWatcher:
 
 func asyncUpdateBuffer(feedline chan string) {
 	defer func() {
-		logrus.Debug("ASYUPBF: deferred wg.Done() called")
 		wg.Done()
 	}()
 	bufferMutex.Lock()
 	defer func() {
-		logrus.Debug("ASYUPBF: deferred writerMutex.Unlock() called")
 		bufferMutex.Unlock()
 	}()
 	for line := range feedline {
-		logrus.Debug("ASYUPBF: about to call updateBuffer")
 		changed := updateBuffer(line)
-		logrus.Debug("ASYUPBF: about to check if updateBuffer returned true")
 		if changed {
-			logrus.Debug("ASYUPBF: about to call displayBuffer")
 			displayBuffer()
 		}
-		logrus.Debug("ASYUPBF: about to finish a loop iteration through feedline")
 	}
-	logrus.Debug("ASYUPBF: about to call teardownCapture")
 	teardownCapture()
 }
 
@@ -179,11 +155,11 @@ func updateBuffer(line string) (changed bool) {
 	if line == "" {
 		return false
 	}
-	// compare by skipping the line's timestamp for log messages formated by pydpll/errorutils formatter
 	for _, existingLine := range stdoutBuffer {
-		//2025-02-27 17:35:55 [INFO] Running jobs — [02/7157a4 16/3a6f0a a1/83bb29 c6/7a55a2]
-		rg := regexp.MustCompile(`^.{20}\[.*([A-Z]{4})\.*].*`)
-		if isLog := rg.MatchString(line); isLog && existingLine[20:] == line[20:] {
+		if line[26:30] != "INFO" {
+			break
+		}
+		if existingLine[26:30] == "INFO" && existingLine[20:] == line[20:] {
 			return false
 		} else if existingLine == line {
 			return false
@@ -197,14 +173,6 @@ func updateBuffer(line string) (changed bool) {
 	return true
 }
 
-func truncateLine(line string, maxWidth int) string {
-	if len(line) > maxWidth-3 {
-		return line[:maxWidth-3] + "…"
-	}
-	return line
-}
-
-// overwrites the previous display using ANSI escape codes.
 func displayBuffer() {
 	header := "\033[1;32m--- Program Output Display ---\033[0m"
 	footer := "\033[1;32m--- End Display --------------\033[0m"
@@ -213,7 +181,6 @@ func displayBuffer() {
 	maxWidth, _, err := terminal.GetSize(int(origStdout.Fd()))
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		maxWidth = 80
-		logrus.Tracef("Terminal width: %d", maxWidth)
 	}
 	errorutils.WarnOnFail(err)
 
@@ -230,7 +197,14 @@ func displayBuffer() {
 	lines = append(lines, footer)
 
 	for _, line := range lines {
-		fmt.Fprintf(origStdout, "%-80s\n", truncateLine(line, maxWidth)) // Ensure fixed width for stability
+		fmt.Fprintf(origStdout, "%-80s\n", truncateLine(line, maxWidth)) // Ensure fixed width
 	}
 	lastDisplayLines = len(lines)
+}
+
+func truncateLine(line string, maxWidth int) string {
+	if len(line) > maxWidth-3 {
+		return line[:maxWidth-3] + "…"
+	}
+	return line
 }

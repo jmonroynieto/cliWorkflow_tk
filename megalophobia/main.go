@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"time"
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
@@ -13,29 +15,14 @@ import (
 
 var (
 	CommitId string
+	input    io.Reader //defaults to stdin
 )
-
-func init() {
-	if os.Getenv("DEBUG_MODE") == "true" {
-		err := func(filename string) error {
-			f, err := os.Open(filename)
-			if err != nil {
-				panic(err)
-			}
-			os.Stdin = f
-			return nil
-		}("test3.txt")
-		if err != nil {
-			panic(err)
-		}
-	}
-}
 
 var app = cli.Command{
 	Name:        "megalophobia",
 	Description: "Makes a three line window to display info, input is meant to be human paced. No scrolling",
 	Action:      tool,
-	Version:     "v0.0.1 - commit: " + CommitId,
+	Version:     "v0.0.2 - commit: " + CommitId,
 	Commands: []*cli.Command{
 		{
 			Name:        "demo",
@@ -52,28 +39,38 @@ var app = cli.Command{
 				if b {
 					logrus.SetLevel(logrus.DebugLevel)
 					logrus.Debug("Debug logging enabled")
+					logrus.SetOutput(os.Stderr)
 				}
 				return nil
 			},
+		},
+		&cli.StringFlag{
+			Name:    "input",
+			Aliases: []string{"i"},
+			Usage:   "Path to input file",
+			Value:   "",
+			Action: func(c context.Context, cmd *cli.Command, s string) error {
+				if s == "" {
+					input = os.Stdin
+					return nil
+				}
+				f, err := os.Open(s)
+				if err != nil {
+					return err
+				}
+				input = f
+				return nil
+			},
+		},
+		&cli.BoolFlag{
+			Name:    "pace",
+			Aliases: []string{"p"},
+			Usage:   "Pace input",
 		},
 	},
 }
 
 func main() {
-	// go func() {
-	// 	log.Println(http.ListenAndServe(":6060", nil))
-	// }()
-	// // Create a CPU profile file
-	// f, err := os.Create("profile.prof")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer f.Close()
-
-	// // Start CPU profiling
-	// if err := pprof.StartCPUProfile(f); err != nil {
-	// 	panic(err)
-	// }
 	err := app.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)
 }
@@ -82,11 +79,14 @@ func tool(ctx context.Context, cmd *cli.Command) error {
 	running, err := SetupCapture()
 	errorutils.ExitOnFail(err, errorutils.WithMsg("Failed to setup capture: "))
 	//reading loop
-	scanner := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(input)
 	for *running && scanner.Scan() {
 		userinput := scanner.Text()
 		fmt.Println(userinput)
+		if cmd.Bool("pace") {
+			time.Sleep(400 * time.Millisecond)
+		}
 	}
-	FinishCapture() //necessary to run: blocks main goroutineCapture()
+	FinishCapture() // blocks main goroutineCapture()
 	return nil
 }
