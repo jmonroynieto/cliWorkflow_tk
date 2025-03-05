@@ -24,18 +24,18 @@ var (
 	terminationSignal chan struct{}
 	wg                sync.WaitGroup
 	bufferMutex       sync.Mutex
-	ὄλεθροςπάντων     = "Ὦ χάϝος, ὁ μέγας ἄβυσσος σε κατέφαγεν!" // debug end of input, terminator
+	ὄλεθροςπάντων     = "ὦ χάϝος, ὁ μέγας ἄβυσσος σε κατέφαγεν!" // debug end of input, terminator
 )
 
 // redirects stdout to a pipe and starts the *[CONCURRENT]* routines that capture and display the output
-func SetupCapture() (running *bool, err error) {
+func SetupCapture() (*bool, error) {
+	running := true
+	var err error
 	origStdout = os.Stdout
 	//set to devnull during debugging
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		origStdout, _ = os.OpenFile(os.DevNull, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	}
-
-	*running = true
 
 	{ //handle interrupt
 		interrupted := make(chan os.Signal, 1)
@@ -43,7 +43,7 @@ func SetupCapture() (running *bool, err error) {
 		go func() {
 			for sig := range interrupted {
 				if sig == syscall.SIGINT {
-					*running = false
+					running = false
 					fmt.Fprintf(origStdout, "\033[2K\033[G")
 					fmt.Println(ὄλεθροςπάντων)
 					break
@@ -56,7 +56,7 @@ func SetupCapture() (running *bool, err error) {
 	terminationSignal = make(chan struct{}, 2)
 	pipeReader, pipeWriter, err = os.Pipe()
 	if err != nil {
-		return running, err
+		return &running, err
 	}
 	os.Stdout = pipeWriter //output swap
 
@@ -64,7 +64,7 @@ func SetupCapture() (running *bool, err error) {
 	wg.Add(1)
 	go captureOutput(lineChan)
 	go asyncUpdateBuffer(lineChan)
-	return running, nil
+	return &running, nil
 }
 
 func FinishCapture() {
@@ -156,7 +156,7 @@ func updateBuffer(line string) (changed bool) {
 		return false
 	}
 	for _, existingLine := range stdoutBuffer {
-		if line[26:30] != "INFO" {
+		if len(line) < 31 || line[26:30] != "INFO" {
 			break
 		}
 		if existingLine[26:30] == "INFO" && existingLine[20:] == line[20:] {
@@ -174,8 +174,8 @@ func updateBuffer(line string) (changed bool) {
 }
 
 func displayBuffer() {
-	header := "\033[1;32m--- Program Output Display ---\033[0m"
-	footer := "\033[1;32m--- End Display --------------\033[0m"
+	header := "\033[1;32m--- " + ὄλεθροςπάντων + " ---\033[0m"
+	footer := "\033[1;32m---pipewriter-- ὄλεθρος πάντων --------------\033[0m"
 	clearLine := "\033[2K" //Clear the entire line
 
 	maxWidth, _, err := terminal.GetSize(int(origStdout.Fd()))

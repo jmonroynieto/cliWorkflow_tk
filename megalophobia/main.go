@@ -21,8 +21,12 @@ var (
 var app = cli.Command{
 	Name:        "megalophobia",
 	Description: "Makes a three line window to display info, input is meant to be human paced. No scrolling",
-	Action:      tool,
-	Version:     "v0.0.2 - commit: " + CommitId,
+	Before: func(c context.Context, cmd *cli.Command) (context.Context, error) {
+		input = os.Stdin
+		return nil, nil
+	},
+	Action:  tool,
+	Version: "v0.0.2 - commit: " + CommitId,
 	Commands: []*cli.Command{
 		{
 			Name:        "demo",
@@ -50,10 +54,6 @@ var app = cli.Command{
 			Usage:   "Path to input file",
 			Value:   "",
 			Action: func(c context.Context, cmd *cli.Command, s string) error {
-				if s == "" {
-					input = os.Stdin
-					return nil
-				}
 				f, err := os.Open(s)
 				if err != nil {
 					return err
