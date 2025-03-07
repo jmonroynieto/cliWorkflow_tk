@@ -36,7 +36,8 @@ func main() {
 	app := &cli.Command{
 		Name:    "chaptor",
 		Usage:   "Royal road chapter extraction",
-		Version: fmt.Sprintf("%s - %s", Version, CommitId),
+		Version:   fmt.Sprintf("%s (%s)", Version, CommitId),
+
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",

@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	version  = "1.2.0"
+	Version  = "1.2.0"
 	CommitId string
 )
 
@@ -88,7 +88,7 @@ func main() {
 
 		Name:    "xwindows",
 		Usage:   "list open windows",
-		Version: fmt.Sprintf("%s - %s", version, CommitId),
+		Version: fmt.Sprintf("%s (%s)", Version, CommitId),
 		Action:  listOpenWindows,
 	}).Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)

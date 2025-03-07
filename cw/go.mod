@@ -7,6 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/charmbracelet/huh v0.6.0
 	github.com/pydpll/errorutils v0.2.0
+	github.com/urfave/cli/v3 v3.0.0-beta1
 )
 
 require (
@@ -31,7 +32,6 @@ require (
 	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/urfave/cli/v3 v3.0.0-beta1 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

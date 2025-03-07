@@ -21,7 +21,7 @@ func main() {
 		Usage:    "custon random value generator",
 		Flags:    appFlags,
 		Commands: appCmds,
-		Version:  fmt.Sprintf("%s - %s", Version, CommitId),
+		Version:   fmt.Sprintf("%s (%s)", Version, CommitId),
 	}
 
 	app.Run(context.Background(), os.Args)

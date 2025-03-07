@@ -26,7 +26,7 @@ func main() {
 		Name:    "indexFiles",
 		Usage:   "recursive, parallel sha1sum for files and symlinks in directory",
 		Flags:   appFlags,
-		Version: fmt.Sprintf("%s - %s", Version, CommitId),
+		Version: fmt.Sprintf("%s (%s)", Version, CommitId),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			run(cmd.String("examine"), cmd.String("output"))
 			return nil

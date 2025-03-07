@@ -15,13 +15,14 @@ import (
 
 var (
 	CommitId string
+	Version = "v1.2.1"
 )
 
 var app = cli.Command{
 	Name:        "Ansible",
 	Description: "log simply log",
 	Action:      superluminal,
-	Version:     "v1.2.1 (" + CommitId + ")",
+	Version:   fmt.Sprintf("%s (%s)", Version, CommitId),
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "debug",

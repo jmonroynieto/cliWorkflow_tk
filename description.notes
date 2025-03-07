@@ -1,34 +1,36 @@
+2025-Feb-07 09:58:24	ansible/	Simple logger
+
+2023-Feb-22 20:27:33	filterMyCal/	take out iterms of csv calendar import file
+
 2023-Feb-22 20:26:14	barker/	sends email when file is created
-
-2024-Feb-31 10:32:48	ansCRUBi/	cleans ansi characters from text. stdin or files
-
-2023-Feb-22 20:26:29	calshow/	prints calendar import file in readable week format
-
-2024-Feb-11 12:09:56	kompti/	Custom timestamp
-
-2024-Feb-11 10:01:05	chaptor/	scrape and format chapters into html for kindlesend
 
 2025-Feb-05 19:25:58	indexFiles/	simple sha1 catalog for any disk
 
 2023-Feb-22 20:26:53	describeFiles/	creates file descriptions such as this one the file can exist or not
 
-2025-Feb-05 19:29:20	zustellen/	manually create breakpoints for a program using breakpoints i/o
-
 2025-Feb-12 11:39:36	xwin/	Extracts x11 info on running windows to define matching rules for michd/mmpd scopes
-
-2023-Feb-22 20:27:21	dripC/	color output randomly, useful for cat or if the output is hard to parse when wrapped
 
 2024-Feb-04 10:31:17	cw/	Terminal bookmark system
 
 2025-Feb-05 19:26:24	megalophobia/	display window for input
 
-2023-Feb-22 20:28:06	quoteadder/	adds cuotes to be used with lemnos/tt
-
-2023-Feb-22 20:27:33	filterMyCal/	take out iterms of csv calendar import file
-
 2024-Feb-23 17:38:19	fickleFinger/	fulfills workflow steps relying in RNGs
+
+2024-Feb-31 10:32:48	ansCRUBi/	cleans ansi characters from text. stdin or files
+
+2023-Feb-22 20:26:29	calshow/	prints calendar import file in readable week format
+
+2025-Feb-05 19:29:20	zustellen/	manually create breakpoints for a program using breakpoints i/o
+
+2023-Feb-22 20:28:15	watchAdir/	gives notifications of files created
+
+2024-Feb-11 12:09:56	kompti/	Custom timestamp
+
+2023-Feb-22 20:27:21	dripC/	color output randomly, useful for cat or if the output is hard to parse when wrapped
 
 2024-Feb-21 22:09:43	mdMake/	Transcribe TSV into Markdown tables
 
-2023-Feb-22 20:28:15	watchAdir/	gives notifications of files created
+2024-Feb-11 10:01:05	chaptor/	scrape and format chapters into html for kindlesend
+
+2023-Feb-22 20:28:06	quoteadder/	adds cuotes to be used with lemnos/tt
 

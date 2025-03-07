@@ -26,7 +26,7 @@ func main() {
 		UsageText: "ansCRUBi [-o] [-f files...]",
 		Usage:     "Removes ansi control characters left over from colorized commands",
 		Flags:     appFlags,
-		Version:   fmt.Sprintf("%s - %s", Version, CommitId),
+		Version:   fmt.Sprintf("%s (%s)", Version, CommitId),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			// piping only
 			if a := cmd.Args().First(); !cmd.IsSet("files") && (a == "-" || a == "") {

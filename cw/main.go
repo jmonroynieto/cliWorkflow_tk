@@ -5,6 +5,8 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,43 +15,57 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/pydpll/errorutils"
+	"github.com/urfave/cli/v3"
 )
 
 var (
-	Version  = "1.2.0"
+	Version  = "1.2.2"
 	CommitId string
 )
 
-func main() {
-	//get the arguments
-	args := os.Args
-	if len(args) == 1 {
-		printHelp()
-		return
-	}
-	args = args[1:]
-	//get the command
-	command := args[0]
-	//execute command
-	if command == "set" {
-		set(args[1:])
-	} else if command == "unset" {
-		unset(args[1:])
-	} else if command == "list" {
-		list()
-	} else if command == "version" {
-		fmt.Printf("Version: %s - %s\n", Version, CommitId)
-	} else {
-		printHelp()
-	}
+var app = cli.Command{
+	Name:                          "cw",
+	Description:                   "cw is a program designed to add bookmarks to the terminal for quick access to files and folders",
+	Commands:                      appCmds,
+	Version:                       fmt.Sprintf("%s (%s)", Version, CommitId),
+	CustomRootCommandHelpTemplate: printHelp,
+}
+var appCmds = []*cli.Command{
+	{
+		Name:               "set",
+		Usage:              "set a bookmark",
+		Action:             set,
+		ArgsUsage:          "<key> <location>",
+		CustomHelpTemplate: subcmdHelp,
+	},
+	{
+		Name:               "unset",
+		Usage:              "unset a bookmark",
+		Action:             unset,
+		ArgsUsage:          "<key>",
+		CustomHelpTemplate: subcmdHelp,
+	},
+	{
+		Name:               "list",
+		Usage:              "list all bookmarks",
+		Action:             list,
+		ArgsUsage:          "",
+		CustomHelpTemplate: subcmdHelp,
+	},
 }
 
-func set(args []string) {
+func main() {
+	err := app.Run(context.Background(), os.Args)
+	errorutils.ExitOnFail(err)
+}
+
+func set(ctx context.Context, cmd *cli.Command) error {
+	args := cmd.Args().Slice()
 	if len(args) < 2 {
 		fmt.Printf("Error: not enough arguments given\n")
 		fmt.Printf("command was cw set %s\n\n", args)
-		printHelp()
-		return
+		fmt.Println(cmd.Usage)
+		return nil
 	}
 
 	key := args[0]
@@ -78,15 +94,14 @@ func set(args []string) {
 	keys = append(keys, key)
 	slices.Sort(keys)
 	WriteFile(slices.Compact(keys), bookmarks)
+	return nil
 }
 
 // unset unsets the bookmark
-func unset(request []string) {
-
+func unset(ctx context.Context, cmd *cli.Command) error {
+	request := cmd.Args().Slice()
 	if len(request) == 0 {
-		fmt.Printf("Error: no items to delete\n")
-		printHelp()
-		return
+		return errors.New("error: no items to delete")
 	}
 
 	aliases := readAliases()
@@ -103,53 +118,49 @@ func unset(request []string) {
 	}
 	WriteFile(keys, bookmarks)
 	fmt.Printf("Bookmarks matching the requested registers have been deleted\nRequested: %s\nLocations Removed: %s\n", request, dest)
+	return nil
 }
 
 // list lists all the bookmarks
-func list() {
+func list(ctx context.Context, cmd *cli.Command) error {
 	aliases := readAliases()
 	bookmarks, keys := extractBM(aliases)
 	slices.Sort(keys)
 	for _, key := range slices.Compact(keys) {
 		fmt.Printf("%s\t->\t%s\n", key, bookmarks[key])
 	}
+	return nil
 }
 
 // printHelp prints the help
-func printHelp() {
-	fmt.Printf("Version: %s - %s\n", Version, CommitId)
-	fmt.Println(`Creates aliases for bookmarks (e.g., cw1, cwb) for easy access
+var printHelp string = `{{"\033[1m"}}{{.Name}}{{"\033[0m"}} - {{.Description}}
+{{ "Create convenient bookmarks for frequently accessed folders within your terminal, allowing for quick and easy navigation." }}
+		 - Keys must be single characters. They will create aliases as 'cw<key> (e.g. cw1, cw2, cwO)'
+		 - Keys are case sensitive
+		 - Stores bookmarks in a Bash file: ~/.cw_bookmarks.sh
+		 - The 'setP', 'unsetP', and 'showP' commands are set as aliases for quick operation.
 
-**Description:**
+USAGE:
+ 	{{.Name}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{ if .ArgsUsage}} {{.ArgsUsage}}{{else}}[arguments...]{{end}}
 
-cw enables you to create convenient bookmarks for frequently accessed folders within your terminal, allowing for quick and easy navigation.
+COMMANDS:
+{{range .Commands}}{{if not .HideHelp}}   {{join .Names ", "}}{{" "}}{{.ArgsUsage}}{{ "\t"}}{{.Usage}}{{ "\n" }}{{end}}{{end}}{{if .VisibleFlags}}
+GLOBAL OPTIONS:
+   {{range .VisibleFlags}}{{.}}
+   {{end}}{{end}}{{if .Version}}
+VERSION:
+   {{.Version}}
+   {{end}}
 
-**Usage:**
+`
 
-- **Set a bookmark:**
- cw set <key> <path>
-  - Example: cw set d ~/Documents
-
-- **Remove a bookmark:**
- cw unset <key>
-  - Example: cw unset d
-
-- **List all bookmarks:**
- cw list
-
-**Additional Features:**
-
-- **Backward compatibility:**
- 'setP' and 'showP' commands are included for compatibility with earlier cw versions.
-
-**Technical Details:**
-
-- Stores bookmarks in a Bash file: ~/.cw_bookmarks.sh
-
-**Start bookmarking your favorite directories and boost your terminal productivity with cw!**
-
-** ** ** **`)
-}
+var subcmdHelp string = `NAME: {{.Name}} - {{.Usage}}
+cw {{.HelpName}} {{if .ArgsUsage}}{{.ArgsUsage}} {{if .VisibleFlags}}[global options]{{end}}
+{{if .VisibleFlags}}
+OPTIONS:
+   {{range .VisibleFlags}}{{.}}
+   {{end}}{{end}}
+`
 
 // extract info from alias declarations
 func extractBM(lines []string) (map[string]string, []string) {
@@ -210,7 +221,7 @@ func readAliases() []string {
 func giveHeader() string {
 	return `#!/bin/bash
 # This file was generated by cw and is used to store the bookmarks
-# see github.com/jmonroynieto/cw for more information
+# see github.com/jmonroynieto/cliWorkflow_tk/cw for more information
 # To use the bookmarks, source this file in your .bashrc or .zshrc
 
 setP() { loc=${2:-$(pwd)}; cw set ${1} ${loc}; source ~/.cw_bookmarks.sh ; }

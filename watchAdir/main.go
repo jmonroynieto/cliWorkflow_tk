@@ -23,7 +23,7 @@ var app = cli.Command{
 	Name:    "watchAdir",
 	Usage:   "Notifies when a directory is changed with printouts",
 	Flags:   appFlags,
-	Version: fmt.Sprintf("%s - %s", Version, CommitId),
+	Version: fmt.Sprintf("%s (%s)", Version, CommitId),
 	Action:  vidi,
 }
 

@@ -25,7 +25,7 @@ func main() {
 		Usage:    "usage",
 		Flags:    appFlags,
 		Commands: appCmds,
-		Version:  fmt.Sprintf("%s - %s", Version, CommitId),
+		Version:  fmt.Sprintf("%s (%s)", Version, CommitId),
 	}
 
 	app.Run(context.Background(), os.Args)
