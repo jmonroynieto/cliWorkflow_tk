@@ -74,7 +74,7 @@ func superluminal(ctx context.Context, cmd *cli.Command) error {
 
 	logrus.SetOutput(file)
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	entry.Time = t //time of call not depending on mutext aquisition
+	entry.Time = t //time of call not depending on mutex aquisition
 	switch cmd.String("level") {
 	case "debug":
 		entry.Debug(strings.Join(cmd.Args().Slice(), " "))
