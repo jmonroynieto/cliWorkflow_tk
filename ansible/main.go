@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
@@ -19,7 +21,7 @@ var app = cli.Command{
 	Name:        "Ansible",
 	Description: "log simply log",
 	Action:      superluminal,
-	Version:     "v0.1.0 (" + CommitId + ")",
+	Version:     "v1.2.1 (" + CommitId + ")",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "debug",
@@ -41,13 +43,13 @@ var app = cli.Command{
 		},
 		&cli.StringFlag{
 			Name:    "storage",
-			Usage:   "`FILE` to log into. Default is ./ansible.log",
+			Usage:   "`FILE` to log into.",
 			Value:   "./ansible.log",
 			Aliases: []string{"s"},
 		},
 		&cli.StringFlag{
 			Name:    "level",
-			Usage:   "log level. Default is info. possible values: debug, info, warn, error",
+			Usage:   "log level. possible values: debug, info, warn, error",
 			Aliases: []string{"l"},
 			Value:   "info",
 		},
@@ -60,24 +62,37 @@ func main() {
 }
 
 func superluminal(ctx context.Context, cmd *cli.Command) error {
+	t := time.Now()
 	// open file to append
 	filename := cmd.String("storage")
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	errorutils.ExitOnFail(err)
 	defer file.Close()
+	lockFile(file)
+	defer unlockFile(file)
 
 	logrus.SetOutput(file)
+	entry := logrus.NewEntry(logrus.StandardLogger())
+	entry.Time = t //time of call not depending on mutext aquisition
 	switch cmd.String("level") {
 	case "debug":
-		logrus.Debug(strings.Join(cmd.Args().Slice(), " "))
+		entry.Debug(strings.Join(cmd.Args().Slice(), " "))
 	case "info":
-		logrus.Info(strings.Join(cmd.Args().Slice(), " "))
+		entry.Info(strings.Join(cmd.Args().Slice(), " "))
 	case "warn":
-		logrus.Warn(strings.Join(cmd.Args().Slice(), " "))
+		entry.Warn(strings.Join(cmd.Args().Slice(), " "))
 	case "error":
-		logrus.Error(strings.Join(cmd.Args().Slice(), " "))
+		entry.Error(strings.Join(cmd.Args().Slice(), " "))
 	default:
 		fmt.Fprintf(os.Stderr, "\x1b[31m%s\x1b[0m\n", "no such log level "+cmd.String("level"))
 	}
 	return nil
+}
+
+func lockFile(file *os.File) error {
+	return syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
+}
+
+func unlockFile(file *os.File) error {
+	return syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
 }
