@@ -24,7 +24,7 @@ var (
 	terminationSignal chan struct{}
 	wg                sync.WaitGroup
 	bufferMutex       sync.Mutex
-	ὄλεθροςπάντων     = "ὦ χάϝος, ὁ μέγας ἄβυσσος σε κατέφαγεν!" // debug end of input, terminator
+	ὄλεθροςπαντός     = "ὦ χάϝος, ἡ μεγάλη ἄβυσσος σε κατέφαγεν!" // debug end of input, terminator
 )
 
 // redirects stdout to a pipe and starts the *[CONCURRENT]* routines that capture and display the output
@@ -45,7 +45,7 @@ func SetupCapture() (*bool, error) {
 				if sig == syscall.SIGINT {
 					running = false
 					fmt.Fprintf(origStdout, "\033[2K\033[G")
-					fmt.Println(ὄλεθροςπάντων)
+					fmt.Println(ὄλεθροςπαντός)
 					break
 				}
 			}
@@ -68,7 +68,7 @@ func SetupCapture() (*bool, error) {
 }
 
 func FinishCapture() {
-	//fmt.Println(ὄλεθροςπάντων) //last ditch effort to close the output
+	//fmt.Println(ὄλεθροςπαντός) //last ditch effort to close the output
 	pipeWriter.Close()
 	close(terminationSignal)
 	wg.Wait() //blocks main goroutine
@@ -95,7 +95,7 @@ chanWatcher:
 			}
 			if scanner.Scan() {
 				// check for the end
-				if scanner.Text() == ὄλεθροςπάντων {
+				if scanner.Text() == ὄλεθροςπαντός {
 					τέλος = true
 					continue
 				}
@@ -174,8 +174,8 @@ func updateBuffer(line string) (changed bool) {
 }
 
 func displayBuffer() {
-	header := "\033[1;32m--- " + ὄλεθροςπάντων + " ---\033[0m"
-	footer := "\033[1;32m---pipewriter-- ὄλεθρος πάντων --------------\033[0m"
+	header := "\033[1;32m--- " + ὄλεθροςπαντός + " ---\033[0m"
+	footer := "\033[1;32m--------------- ὄλεθρος παντός ---------------\033[0m"
 	clearLine := "\033[2K" //Clear the entire line
 
 	maxWidth, _, err := terminal.GetSize(int(origStdout.Fd()))
