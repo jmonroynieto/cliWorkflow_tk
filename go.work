@@ -1,4 +1,4 @@
-go 1.24.0
+go 1.24.1
 
 use (
 	./ansCRUBi
@@ -13,6 +13,7 @@ use (
 	./filterMyCal
 	./indexFiles
 	./kompti
+	./kwiqExt
 	./mdMake
 	./megalophobia
 	./quoteadder
