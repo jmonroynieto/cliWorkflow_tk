@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	Version  = "0.3"
+	Version  = "0.4"
 	CommitId string
 )
 
@@ -95,6 +95,9 @@ func general(ctx context.Context, cmd *cli.Command) error {
 }
 
 func printerAid(cmd *cli.Command, path string, kind filetyper.FmtType) {
+	if path == "" || kind.String() == "" {
+		return
+	}
 	if cmd.Bool("long") {
 		if kind == filetyper.OTHER {
 			fmt.Printf("%s\t%s\n", path, "OTHER")
@@ -102,7 +105,7 @@ func printerAid(cmd *cli.Command, path string, kind filetyper.FmtType) {
 		}
 		o, err := os.Open(path)
 		errorutils.ExitOnFail(err)
-		fmt.Printf("%s\t%s\t%s\n", path, kind, filetyper.GetHeader(o).MIME.Value)
+		fmt.Printf("%s\t%s\t%s\n", path, kind, filetyper.HeaderTest(o).MIME.Value)
 		o.Close()
 		return
 	}
@@ -113,7 +116,7 @@ func mimetype(ctx context.Context, cmd *cli.Command) error {
 	for _, file := range cmd.Args().Slice() {
 		f, err := os.Open(file)
 		errorutils.ExitOnFail(err, errorutils.WithMsg("failed to open file "+file))
-		fmt.Println(filetyper.GetHeader(f).MIME.Value)
+		fmt.Println(filetyper.HeaderTest(f).MIME.Value)
 		f.Close()
 	}
 	return nil

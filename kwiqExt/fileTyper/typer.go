@@ -82,7 +82,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		return UNKNOWN
 	}
 	switch ext {
-	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text": // Config formats
+	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text", "json": // Config formats
 		return TXT
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", // Images
 		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", // Video
@@ -106,13 +106,9 @@ func mapExtensionToFmtType(path string) FmtType {
 			return BIOINFO
 		}
 		return ARCHIVE
-	case ".fasta", ".fastq", ".fa", ".fq", ".fas", ".ffn", ".faa", ".fna", ".fsa", ".aln",
-		".fai", ".bai", ".crai", ".maf", ".clustal", ".phy", ".phylip", ".nwk", ".newick",
-		".sam", ".bam", ".cram", ".vcf", ".gff", ".gff3", ".gtf", ".gff2", ".bed",
-		".pbd":
-		return BIOINFO
 	// Source code
-	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", ".zig", ".odin", // Compiled languages
+	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", ".zig", ".odin", "rs", // Compiled languages
+		".hh", ".cc",
 		".py", ".pyc", ".pyd", ".pyo", // Python (source, compiled)
 		".js", ".mjs", ".cjs", // JavaScript
 		".ts", ".tsx", // TypeScript
@@ -136,7 +132,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".msi",         // Windows installer
 		".deb", ".rpm", // Linux packages
 		".bin", // Generic binary, often executable or firmware
-		".elf", ".com":
+		".elf", ".lib":
 		return BINEXEC
 
 	case ".ttf", ".otf", ".woff", ".woff2", ".eot":
@@ -145,6 +141,9 @@ func mapExtensionToFmtType(path string) FmtType {
 	case ".iso", ".img", ".vdi", ".vhd", ".vmdk", ".dmg", ".bbolt", ".cayley", "db":
 		return ARCHIVE
 	default:
+		if bioinfoCK(ext) {
+			return BIOINFO
+		}
 		logrus.Debugf("Extension '%s' not specifically mapped, defaulting to UNKNOWN.", ext)
 		return UNKNOWN
 	}
@@ -152,10 +151,11 @@ func mapExtensionToFmtType(path string) FmtType {
 
 func bioinfoCK(ext string) bool {
 	switch ext {
-	case ".fasta", ".fastq", ".fa", ".fq", ".fas", ".ffn", ".faa", ".fna", ".fsa", ".aln",
-		".fai", ".bai", ".crai", ".maf", ".clustal", ".phy", ".phylip", ".nwk", ".newick",
+	case ".fasta", ".fastq", ".fa", ".fq", ".fas", ".ffn", ".faa",
+		".fna", ".fsa", ".aln", ".fai", ".bai", ".crai", ".maf",
+		".clustal", ".phy", ".phylip", ".nwk", ".newick",
 		".sam", ".bam", ".cram", ".vcf", ".gff", ".gff3", ".gtf", ".gff2", ".bed",
-		".pbd":
+		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch":
 		return true
 	default:
 		return false
@@ -177,7 +177,7 @@ func mimeTypeContent(filePath string) (FmtType, error) {
 	defer file.Close()
 
 	// byte header
-	kind := GetHeader(file)
+	kind := HeaderTest(file)
 
 	if kind == types.Unknown {
 		logrus.Debugf("Header match inconclusive for %s. Falling back to extension.", filePath)
@@ -186,7 +186,7 @@ func mimeTypeContent(filePath string) (FmtType, error) {
 	return mapKindToFmtType(kind), nil
 }
 
-func GetHeader(file *os.File) types.Type {
+func HeaderTest(file *os.File) types.Type {
 	//if file is directory return fake directory type
 	if x, _ := file.Stat(); x.IsDir() {
 		return types.Type{
