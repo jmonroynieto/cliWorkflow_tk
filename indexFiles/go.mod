@@ -1,4 +1,4 @@
-module indexFiles
+module github.com/jmonroynieto/cliWorkflow_tk/indexFiles
 
 go 1.24
 

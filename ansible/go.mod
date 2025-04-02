@@ -1,4 +1,4 @@
-module ansible
+module github.com/jmonroynieto/cliWorkflow_tk/ansible
 
 go 1.24.0
 

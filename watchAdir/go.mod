@@ -1,4 +1,4 @@
-module watchAdir
+module github.com/jmonroynieto/cliWorkflow_tk/watchAdir
 
 go 1.24
 

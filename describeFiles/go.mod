@@ -1,4 +1,4 @@
-module describeFiles
+module github.com/jmonroynieto/cliWorkflow_tk/describeFiles
 
 go 1.24
 

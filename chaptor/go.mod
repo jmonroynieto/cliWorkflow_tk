@@ -1,4 +1,4 @@
-module chaptor
+module github.com/jmonroynieto/cliWorkflow_tk/chaptor
 
 go 1.24
 

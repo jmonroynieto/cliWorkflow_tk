@@ -1,4 +1,4 @@
-module xwindows
+module github.com/jmonroynieto/cliWorkflow_tk/xwindows
 
 go 1.24
 

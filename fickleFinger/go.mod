@@ -1,4 +1,4 @@
-module fickleFinger
+module github.com/jmonroynieto/cliWorkflow_tk/fickleFinger
 
 go 1.23.0
 

@@ -1,4 +1,4 @@
-module quoteadder
+module github.com/jmonroynieto/cliWorkflow_tk/quoteadder
 
 go 1.24
 

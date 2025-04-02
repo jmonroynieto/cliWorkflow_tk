@@ -1,4 +1,4 @@
-module barker
+module github.com/jmonroynieto/cliWorkflow_tk/barker
 
 go 1.24
 

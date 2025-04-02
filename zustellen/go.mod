@@ -1,4 +1,4 @@
-module zustellen
+module github.com/jmonroynieto/cliWorkflow_tk/zustellen
 
 go 1.24
 

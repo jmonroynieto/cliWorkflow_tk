@@ -1,4 +1,4 @@
-module kwiqExt
+module github.com/jmonroynieto/cliWorkflow_tk/kwiqExt
 
 go 1.24.1
 

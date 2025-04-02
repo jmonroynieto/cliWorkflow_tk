@@ -1,4 +1,4 @@
-module megalophobia
+module github.com/jmonroynieto/cliWorkflow_tk/megalophobia
 
 go 1.24.0
 
