@@ -175,28 +175,63 @@ func mimeTypeContent(filePath string) (FmtType, error) {
 	defer file.Close()
 
 	// byte header
-	header := make([]byte, 300)
-	n, readErr := file.Read(header)
-	if readErr != nil && readErr != io.EOF {
-		return UNKNOWN, fmt.Errorf("failed to read header from %s: %w", filePath, readErr)
-	}
-
-	if n == 0 {
-		logrus.Debugf("File %s is empty, classifying as TXT .", filePath)
-		return TXT, nil
-	}
-
-	kind, matchErr := filetype.Match(header[:n])
-
-	if matchErr != nil {
-		return UNKNOWN, fmt.Errorf("failed to match header from %s: %w", filePath, matchErr)
-	}
+	kind := GetHeader(file)
 
 	if kind == types.Unknown {
 		logrus.Debugf("Header match inconclusive for %s. Falling back to extension.", filePath)
 		return UNKNOWN, nil
 	}
 	return mapKindToFmtType(kind), nil
+}
+
+func GetHeader(file *os.File) types.Type {
+	header := make([]byte, 300)
+	n, readErr := file.Read(header)
+	if readErr != nil && readErr != io.EOF {
+		logrus.Warnf("Failed to read header from %s: %v", file.Name(), readErr)
+		return types.Unknown
+	}
+
+	if n == 0 {
+		logrus.Debugf("File %s is empty, classifying as TXT .", file.Name())
+		ext := filepath.Ext(file.Name())
+
+		return types.Type{
+			MIME: types.MIME{
+				Value:   "text/plain",
+				Subtype: "plain",
+				Type:    "text",
+			},
+			Extension: ext,
+		}
+	}
+
+	kind, matchErr := filetype.Match(header[:n])
+	if matchErr != nil {
+		logrus.Errorf("Failed to match header from %s: %v", file.Name(), matchErr)
+	}
+	if kind == types.Unknown && isMostlyASCII(header[:n]) {
+		kind = types.Type{
+			MIME: types.MIME{
+				Value:   "text/plain",
+				Subtype: "plain",
+				Type:    "text",
+			},
+			Extension: filepath.Ext(file.Name()[1:]), // strip leading dot from hidden files
+		}
+	}
+
+	return kind
+}
+
+func isMostlyASCII(data []byte) bool {
+	var asciiCount int
+	for _, b := range data {
+		if b >= 32 && b <= 126 {
+			asciiCount++
+		}
+	}
+	return float64(asciiCount)/float64(len(data)) >= 0.81
 }
 
 func mapKindToFmtType(kind types.Type) FmtType {
