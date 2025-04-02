@@ -19,7 +19,8 @@ import (
 )
 
 var (
-	Version  = "1.2.2"
+	Version  string
+	Revision = ".0"
 	CommitId string
 )
 
@@ -27,7 +28,7 @@ var app = cli.Command{
 	Name:                          "cw",
 	Description:                   "cw is a program designed to add bookmarks to the terminal for quick access to files and folders",
 	Commands:                      appCmds,
-	Version:                       fmt.Sprintf("%s (%s)", Version, CommitId),
+	Version:                       fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
 	CustomRootCommandHelpTemplate: printHelp,
 }
 var appCmds = []*cli.Command{
@@ -149,7 +150,7 @@ GLOBAL OPTIONS:
    {{range .VisibleFlags}}{{.}}
    {{end}}{{end}}{{if .Version}}
 VERSION:
-   {{.Version}}
+   {{.}}
    {{end}}
 
 `

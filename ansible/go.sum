@@ -3,8 +3,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/pydpll/errorutils v0.2.0 h1:3Lq6AK9hKe/vbv5ImIYE3S/TFVf/I790DjX6l0QC9dI=
-github.com/pydpll/errorutils v0.2.0/go.mod h1:UpoOe1dqOd/WjSICGNhNb2Ulj60pm+4ylhzmeacIsHw=
 github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae h1:2aKO4XGSqWFyPQLEIvVzy1nYQwuCR7/6qgMZU8HuZ2A=
 github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae/go.mod h1:UpoOe1dqOd/WjSICGNhNb2Ulj60pm+4ylhzmeacIsHw=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=

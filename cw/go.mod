@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/charmbracelet/huh v0.6.0
-	github.com/pydpll/errorutils v0.2.0
+	github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae
 	github.com/urfave/cli/v3 v3.0.0-beta1
 )
 

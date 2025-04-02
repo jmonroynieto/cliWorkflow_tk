@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	Version  = "1.2.0"
+	Version  string
+	Revision = ".0"
 	CommitId string
 )
 
@@ -27,7 +28,7 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	} else if *versionPrint {
-		fmt.Printf("%s - %s", Version, CommitId)
+		fmt.Printf("%s (%s)", Version+Revision, CommitId)
 	}
 
 	// Parse daysFlag into a map for easy lookup

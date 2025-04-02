@@ -35,8 +35,8 @@ github.com/muesli/termenv v0.15.2 h1:GohcuySI0QmI3wN8Ok9PtKGkgkFIk7y6Vpb5PvrY+Wo
 github.com/muesli/termenv v0.15.2/go.mod h1:Epx+iuz8sNs7mNKhxzH4fWXGNpZwUaJKRS1noLXviQ8=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/pydpll/errorutils v0.2.0 h1:3Lq6AK9hKe/vbv5ImIYE3S/TFVf/I790DjX6l0QC9dI=
-github.com/pydpll/errorutils v0.2.0/go.mod h1:UpoOe1dqOd/WjSICGNhNb2Ulj60pm+4ylhzmeacIsHw=
+github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae h1:2aKO4XGSqWFyPQLEIvVzy1nYQwuCR7/6qgMZU8HuZ2A=
+github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae/go.mod h1:UpoOe1dqOd/WjSICGNhNb2Ulj60pm+4ylhzmeacIsHw=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=

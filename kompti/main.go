@@ -13,7 +13,8 @@ const (
 )
 
 var (
-	Version  = "1.2.0"
+	Version  string
+	Revision = ".0"
 	CommitId string
 )
 
@@ -24,7 +25,7 @@ func main() {
 		q := transform(y, m)
 		fmt.Printf("%d\n", q)
 	} else if args[1] == "help" || args[1] == "-h" || args[1] == "--help" {
-		fmt.Printf("%s - %s\n", Version, CommitId)
+		fmt.Printf("%s (%s)\n", Version+Revision, CommitId)
 		fmt.Println(helpText)
 	} else {
 		dateStr := strings.Join(args[1:], ` `)

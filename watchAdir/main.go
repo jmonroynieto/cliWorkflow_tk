@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	Version       = "1.3.0"
+	Version       string
+	Revision      = ".0"
 	CommitId      string
 	requestedTime time.Duration
 )
@@ -23,7 +24,7 @@ var app = cli.Command{
 	Name:    "watchAdir",
 	Usage:   "Notifies when a directory is changed with printouts",
 	Flags:   appFlags,
-	Version: fmt.Sprintf("%s (%s)", Version, CommitId),
+	Version: fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
 	Action:  vidi,
 }
 

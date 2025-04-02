@@ -1,4 +1,4 @@
-package filetyper
+package filetper
 
 import (
 	"fmt"

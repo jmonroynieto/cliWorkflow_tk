@@ -18,14 +18,15 @@ import (
 var global []byte
 
 var (
-	Version  = "1.2.0"
+	Version  string
+	Revision = ".0"
 	CommitId string
 )
 
 func main() {
 	// Check that the user has provided a filename.
 	if len(os.Args) < 2 {
-		fmt.Printf("QUOTEADDER\nv%s - %s\n", Version, CommitId)
+		fmt.Printf("QUOTEADDER\nv%s (%s)\n", Version+Revision, CommitId)
 		fmt.Println("Please provide a filename.")
 		return
 	}

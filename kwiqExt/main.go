@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	filetyper "kwiqExt/fileTyper"
+	filetyper "github.com/jmonroynieto/cliWorkflow_tk/kwiqExt/filetyper"
 
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	Version  = "0.4"
+	Version  string
+	Revision = ".0"
 	CommitId string
 )
 
@@ -26,7 +27,7 @@ func init() {
 
 var app cli.Command = cli.Command{
 	Name:        "kwiqExt",
-	Version:     fmt.Sprintf("%s (%s)", Version, CommitId),
+	Version:     fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
 	Description: "identify file types by category",
 	Commands:    appCMDS,
 	Flags: []cli.Flag{

@@ -4,7 +4,7 @@ go 1.24
 
 toolchain go1.24.0
 
-require github.com/pydpll/errorutils v0.2.0
+require github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae
 
 require (
 	github.com/sirupsen/logrus v1.9.3 // indirect

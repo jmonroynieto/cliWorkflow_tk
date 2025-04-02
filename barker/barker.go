@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	Version  = "1.2.0"
+	Version string
+	Revision = ".0"
 	CommitId string
 )
 
@@ -25,7 +26,7 @@ func main() {
 		Usage:    "usage",
 		Flags:    appFlags,
 		Commands: appCmds,
-		Version:  fmt.Sprintf("%s (%s)", Version, CommitId),
+		Version:  fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
 	}
 
 	app.Run(context.Background(), os.Args)

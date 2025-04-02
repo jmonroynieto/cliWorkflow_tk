@@ -5,8 +5,8 @@ github.com/go-mail/mail v2.3.1+incompatible h1:UzNOn0k5lpfVtO31cK3hn6I4VEVGhe3lX
 github.com/go-mail/mail v2.3.1+incompatible/go.mod h1:VPWjmmNyRsWXQZHVHT3g0YbIINUkSmuKOiLIDkWbL6M=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/pydpll/errorutils v0.2.0 h1:3Lq6AK9hKe/vbv5ImIYE3S/TFVf/I790DjX6l0QC9dI=
-github.com/pydpll/errorutils v0.2.0/go.mod h1:UpoOe1dqOd/WjSICGNhNb2Ulj60pm+4ylhzmeacIsHw=
+github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae h1:2aKO4XGSqWFyPQLEIvVzy1nYQwuCR7/6qgMZU8HuZ2A=
+github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae/go.mod h1:UpoOe1dqOd/WjSICGNhNb2Ulj60pm+4ylhzmeacIsHw=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

@@ -26,7 +26,8 @@ import (
 )
 
 var (
-	Version  = "1.2.0"
+	Version  string
+	Revision = ".0"
 	CommitId string
 )
 
@@ -36,7 +37,7 @@ func main() {
 	app := &cli.Command{
 		Name:    "chaptor",
 		Usage:   "Royal road chapter extraction",
-		Version:   fmt.Sprintf("%s (%s)", Version, CommitId),
+		Version: fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
 
 		Flags: []cli.Flag{
 			&cli.BoolFlag{

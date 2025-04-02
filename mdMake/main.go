@@ -9,8 +9,9 @@ import (
 )
 
 var (
+	Version  string
+	Revision = ".0"
 	CommitID string
-	Version  = "1.2.0"
 )
 
 func main() {

@@ -8,7 +8,7 @@ require (
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.3.3
 	github.com/charmbracelet/lipgloss v1.0.0
-	github.com/pydpll/errorutils v0.2.0
+	github.com/pydpll/errorutils v0.2.1-0.20250330233827-f8d5de79edae
 )
 
 require (

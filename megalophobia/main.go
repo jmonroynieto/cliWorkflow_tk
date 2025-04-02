@@ -14,15 +14,16 @@ import (
 )
 
 var (
+	Version  string
+	Revision = ".0"
 	CommitId string
-	Version  = "v1.2.3"
 	input    io.Reader //defaults to stdin
 )
 
 var app = cli.Command{
 	Name:        "megalophobia",
 	Description: "Makes a three line window to display info, input is meant to be human paced. No scrolling",
-	Version:     fmt.Sprintf("%s (%s)", Version, CommitId),
+	Version:     fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
 
 	Before: func(c context.Context, cmd *cli.Command) (context.Context, error) {
 		input = os.Stdin
