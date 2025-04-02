@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	Version  = "0.2"
+	Version  = "0.3"
 	CommitId string
 )
 
@@ -26,12 +26,14 @@ func init() {
 
 var app cli.Command = cli.Command{
 	Name:        "kwiqExt",
+	Version:     fmt.Sprintf("%s (%s)", Version, CommitId),
 	Description: "identify file types by category",
 	Commands:    appCMDS,
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enable debug logging",
+			Name:    "debug",
+			Aliases: []string{"d"},
+			Usage:   "enable debug logging",
 			Action: func(ctx context.Context, cmd *cli.Command, shouldDebug bool) error {
 				if shouldDebug {
 					logrus.SetLevel(logrus.DebugLevel)
@@ -77,24 +79,34 @@ func general(ctx context.Context, cmd *cli.Command) error {
 			}
 			continue
 		} else if i.IsDir() {
-			if cmd.Bool("long") {
-				fmt.Printf("%s\t%s\n", file, "directory")
+			printerAid(cmd, file, filetyper.FmtType(888))
+			continue
+		} else {
+			if i.Mode()&os.ModeNamedPipe != 0 || i.Mode()&os.ModeSocket != 0 || i.Mode()&os.ModeDevice != 0 {
+				printerAid(cmd, file, filetyper.OTHER)
 				continue
 			}
-			fmt.Println("DIR*")
-			continue
 		}
 		f, err := filetyper.DetermineFMTtype(file)
 		errorutils.ExitOnFail(err)
-		if cmd.Bool("long") {
-			o, err := os.Open(file)
-			errorutils.ExitOnFail(err)
-			fmt.Printf("%s\t%s\t%s\n", file, f, filetyper.GetHeader(o).MIME.Value)
-			continue
-		}
-		fmt.Println(f)
+		printerAid(cmd, file, f)
 	}
 	return nil
+}
+
+func printerAid(cmd *cli.Command, path string, kind filetyper.FmtType) {
+	if cmd.Bool("long") {
+		if kind == filetyper.OTHER {
+			fmt.Printf("%s\t%s\n", path, "OTHER")
+			return
+		}
+		o, err := os.Open(path)
+		errorutils.ExitOnFail(err)
+		fmt.Printf("%s\t%s\t%s\n", path, kind, filetyper.GetHeader(o).MIME.Value)
+		o.Close()
+		return
+	}
+	fmt.Println(kind)
 }
 
 func mimetype(ctx context.Context, cmd *cli.Command) error {

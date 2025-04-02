@@ -20,6 +20,14 @@
             "mode": "auto",
             "program": "${workspaceFolder}",
             "args": ["type", "main"]
+        },
+        {
+            "name": "fifo",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": ["type", "--long", "/home/pollo/.zoom/data/com.zoom.ipc.additional_assistantapp__req"]
         }
     ]
 }

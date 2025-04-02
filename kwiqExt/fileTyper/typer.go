@@ -30,7 +30,7 @@ const (
 	OTHER                     // Recognized but not categorized
 )
 
-// String representation for the updated enum
+// String representation for the updated enum. special case for directories with undefined enum val (888)
 func (ft FmtType) String() string {
 	switch ft {
 	case TXT:
@@ -55,6 +55,8 @@ func (ft FmtType) String() string {
 		return "BIOINFO"
 	case OTHER:
 		return "OTHER"
+	case FmtType(888):
+		return "DIR*" //special printing for directories because they are not formally recognized in SPURI because they are nodes separately of fileInfo
 	case UNKNOWN:
 		fallthrough
 	default:
@@ -140,7 +142,7 @@ func mapExtensionToFmtType(path string) FmtType {
 	case ".ttf", ".otf", ".woff", ".woff2", ".eot":
 		return FONT
 
-	case ".iso", ".img", ".vdi", ".vhd", ".vmdk", ".dmg", ".bbolt", ".cayley":
+	case ".iso", ".img", ".vdi", ".vhd", ".vmdk", ".dmg", ".bbolt", ".cayley", "db":
 		return ARCHIVE
 	default:
 		logrus.Debugf("Extension '%s' not specifically mapped, defaulting to UNKNOWN.", ext)
@@ -185,6 +187,17 @@ func mimeTypeContent(filePath string) (FmtType, error) {
 }
 
 func GetHeader(file *os.File) types.Type {
+	//if file is directory return fake directory type
+	if x, _ := file.Stat(); x.IsDir() {
+		return types.Type{
+			MIME: types.MIME{
+				Value:   "noHeader/DIR*",
+				Subtype: "DIR*",
+				Type:    "noHeader",
+			},
+		}
+	}
+
 	header := make([]byte, 300)
 	n, readErr := file.Read(header)
 	if readErr != nil && readErr != io.EOF {
