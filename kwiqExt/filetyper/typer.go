@@ -30,7 +30,7 @@ const (
 	OTHER                     // Recognized but not categorized
 )
 
-// String representation for the updated enum. special case for directories with undefined enum val (888)
+// String representation for the updated enum. special case for directories with invalid enum val (222). Any other value will return "UNMATCHED" which should trigger program failure.
 func (ft FmtType) String() string {
 	switch ft {
 	case TXT:
@@ -55,12 +55,12 @@ func (ft FmtType) String() string {
 		return "BIOINFO"
 	case OTHER:
 		return "OTHER"
-	case FmtType(888):
-		return "DIR*" //special printing for directories because they are not formally recognized in SPURI because they are nodes separately of fileInfo
+	case FmtType(222):
+		return "DIR*" //special printing for directories because they are not formally recognized in SPURI where these enum is used in files only.
 	case UNKNOWN:
-		fallthrough
-	default:
 		return "UNKNOWN"
+	default:
+		return "UNMATCHED" //this should never happen, test for this case and generate catastrophic error asking to fix.
 	}
 }
 func DetermineFMTtype(filePath string) (FmtType, error) {

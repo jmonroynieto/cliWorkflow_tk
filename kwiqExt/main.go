@@ -80,7 +80,7 @@ func general(ctx context.Context, cmd *cli.Command) error {
 			}
 			continue
 		} else if i.IsDir() {
-			printerAid(cmd, file, filetyper.FmtType(888))
+			printerAid(cmd, file, filetyper.FmtType(222))
 			continue
 		} else {
 			if i.Mode()&os.ModeNamedPipe != 0 || i.Mode()&os.ModeSocket != 0 || i.Mode()&os.ModeDevice != 0 {
