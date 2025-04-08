@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"strings"
 	"syscall"
@@ -16,7 +19,7 @@ import (
 var (
 	CommitId string
 	Version  string
-	Revision = ".0"
+	Revision = ".1"
 )
 
 var app = cli.Command{
@@ -29,19 +32,13 @@ var app = cli.Command{
 			Name:    "debug",
 			Aliases: []string{"d"},
 			Action: func(c context.Context, cmd *cli.Command, debug bool) error {
-				logrus.SetLevel(logrus.DebugLevel)
+				slog.SetLogLoggerLevel(slog.LevelDebug)
 				return nil
 			},
 		},
 		&cli.BoolFlag{
-			Name:    "disable-color",
+			Name:    "enable-color",
 			Aliases: []string{"c"},
-			Action: func(c context.Context, cmd *cli.Command, debug bool) error {
-				if errorutils.ToggleColor() {
-					errorutils.ToggleColor()
-				}
-				return nil
-			},
 		},
 		&cli.StringFlag{
 			Name:    "storage",
@@ -56,6 +53,19 @@ var app = cli.Command{
 			Value:   "info",
 		},
 	},
+	Commands: []*cli.Command{
+		{
+			Name: "unlock",
+			Action: func(c context.Context, cmd *cli.Command) error {
+				logrus.Debug("unlocking file")
+				filename := cmd.String("storage")
+				file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0o644)
+				errorutils.ExitOnFail(err)
+				logrus.Debug("file connection stablished")
+				return unlockFile(file)
+			},
+		},
+	},
 }
 
 func main() {
@@ -64,30 +74,70 @@ func main() {
 }
 
 func superluminal(ctx context.Context, cmd *cli.Command) error {
+	wantsColor := cmd.Bool("enable-color")
+	if wantsColor != errorutils.ToggleColor() {
+		errorutils.ToggleColor()
+	}
 	t := time.Now()
+	slog.Debug("starting log")
 	// open file to append
 	filename := cmd.String("storage")
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	errorutils.ExitOnFail(err)
-	defer file.Close()
+	defer func() {
+		file.Close()
+	}()
 	lockFile(file)
+	slog.Debug("locked file")
 	defer unlockFile(file)
 
 	logrus.SetOutput(file)
 	entry := logrus.NewEntry(logrus.StandardLogger())
 	entry.Time = t //time of call not depending on mutex aquisition
+
+	var levelFunc func(args ...interface{})
 	switch cmd.String("level") {
 	case "debug":
-		entry.Debug(strings.Join(cmd.Args().Slice(), " "))
+		levelFunc = entry.Debug
 	case "info":
-		entry.Info(strings.Join(cmd.Args().Slice(), " "))
+		levelFunc = entry.Info
 	case "warn":
-		entry.Warn(strings.Join(cmd.Args().Slice(), " "))
+		levelFunc = entry.Warn
 	case "error":
-		entry.Error(strings.Join(cmd.Args().Slice(), " "))
+		levelFunc = entry.Error
 	default:
 		fmt.Fprintf(os.Stderr, "\x1b[31m%s\x1b[0m\n", "no such log level "+cmd.String("level"))
 	}
+
+	slog.Debug("program parameters set, moving on to processing input")
+	msg := strings.Join(cmd.Args().Slice(), " ")
+	//remove surrounding quotes from msg
+	if len(msg) > 1 && msg[0] == '"' && msg[len(msg)-1] == '"' {
+		msg = msg[1 : len(msg)-1]
+	}
+	//Default scanner from args
+	readers := []io.Reader{strings.NewReader(msg + "\n")}
+
+	if fi, _ := os.Stdin.Stat(); (fi.Mode() & os.ModeCharDevice) == 0 {
+		slog.Debug(fmt.Sprintf("reading from stdin because %x\n", fi.Mode()|os.ModeCharDevice))
+		readers = append(readers, os.Stdin)
+
+	} else if msg == "" {
+		slog.Warn("no input provided, exiting")
+		return errorutils.NewReport("no input provided", "", errorutils.WithExitCode(1))
+	}
+	multireader := io.MultiReader(readers...)
+
+	slog.Debug("scanning input")
+	s := bufio.NewScanner(multireader)
+	for s.Scan() {
+		linemsg := s.Text()
+		if linemsg == "" {
+			continue
+		}
+		levelFunc(linemsg)
+	}
+	slog.Debug("finished scanning input")
 	return nil
 }
 
