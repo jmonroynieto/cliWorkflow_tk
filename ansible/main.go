@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -17,9 +18,10 @@ import (
 )
 
 var (
-	CommitId string
-	Version  string
-	Revision = ".1"
+	CommitId   string
+	Version    string
+	Revision   = ".2"
+	errTIMEOUT = errors.New("timeout")
 )
 
 var app = cli.Command{
@@ -70,7 +72,9 @@ var app = cli.Command{
 
 func main() {
 	err := app.Run(context.Background(), os.Args)
-	errorutils.ExitOnFail(err)
+	if err != nil {
+		slog.Error(err.Error())
+	}
 }
 
 func superluminal(ctx context.Context, cmd *cli.Command) error {
@@ -86,10 +90,8 @@ func superluminal(ctx context.Context, cmd *cli.Command) error {
 	errorutils.ExitOnFail(err)
 	defer func() {
 		file.Close()
+		unlockFile(file)
 	}()
-	lockFile(file)
-	slog.Debug("locked file")
-	defer unlockFile(file)
 
 	logrus.SetOutput(file)
 	entry := logrus.NewEntry(logrus.StandardLogger())
@@ -127,22 +129,71 @@ func superluminal(ctx context.Context, cmd *cli.Command) error {
 		return errorutils.NewReport("no input provided", "", errorutils.WithExitCode(1))
 	}
 	multireader := io.MultiReader(readers...)
-
-	slog.Debug("scanning input")
-	s := bufio.NewScanner(multireader)
-	for s.Scan() {
-		linemsg := s.Text()
-		if linemsg == "" {
-			continue
+	lines_ch := make(chan string, 100)
+	go func() {
+		slog.Debug("scanning input")
+		s := bufio.NewScanner(multireader)
+		for s.Scan() {
+			linemsg := s.Text()
+			if linemsg == "" {
+				continue
+			}
+			lines_ch <- linemsg
 		}
-		levelFunc(linemsg)
+		slog.Debug("finished scanning input")
+		close(lines_ch)
+
+	}()
+	lineCH_open := true
+	firstIsReady_tk := time.NewTicker(1111 * time.Millisecond)
+	select {
+	case <-firstIsReady_tk.C:
+		firstIsReady_tk.Stop()
+	case line, ok := <-lines_ch:
+		firstIsReady_tk.Stop()
+		if !ok {
+			lineCH_open = false
+		}
+		err := lockFile(file)
+		if err != nil {
+			return err
+		}
+		levelFunc(line)
+		unlockFile(file)
 	}
-	slog.Debug("finished scanning input")
+
+lineRW:
+	for lineCH_open {
+		line, ok := <-lines_ch
+		entry.Time = time.Now()
+		if !ok {
+			lineCH_open = false
+			break lineRW
+		}
+		lockFile(file)
+		if err != nil {
+			return err
+		}
+		levelFunc(line)
+		unlockFile(file)
+	}
 	return nil
 }
 
 func lockFile(file *os.File) error {
-	return syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
+	//if we wait for more than 3 minutes, we give up
+	ticker := time.NewTicker(3 * time.Minute)
+	defer ticker.Stop()
+	done := make(chan error)
+	go func() {
+		done <- syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
+	}()
+	select {
+	case err := <-done:
+		return err
+	case <-ticker.C:
+		return errTIMEOUT
+	}
 }
 
 func unlockFile(file *os.File) error {
