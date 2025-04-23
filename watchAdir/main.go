@@ -15,7 +15,7 @@ import (
 
 var (
 	Version       string
-	Revision      = ".0"
+	Revision      = ".1"
 	CommitId      string
 	requestedTime time.Duration
 )
@@ -89,7 +89,7 @@ func vidi(ctx context.Context, cmd *cli.Command) error {
 				switch event.Op {
 				case fsnotify.Create:
 					//check if it is a directory
-					if info, _ := os.Stat(event.Name); info.IsDir() {
+					if info, err := os.Stat(event.Name); info != nil && info.IsDir() {
 						fmt.Println("A new directory named", event.Name, "was created on", time.Now().Format("January 2, 2006 at 15:04:05"))
 						if d := cmd.Int("depth"); d > 0 || d == -1 {
 							newPaths, err := getPathsToWatch(event.Name, int(d)-1)
@@ -99,6 +99,9 @@ func vidi(ctx context.Context, cmd *cli.Command) error {
 								errorutils.WarnOnFail(err, errorutils.WithMsg("failed to watch new directory"))
 							}
 						}
+						continue
+					} else if err != nil {
+						logrus.Debug("failed to stat new file", err, " SKIPPING")
 						continue
 					}
 					fmt.Println("A new file named", event.Name, "was created on", time.Now().Format("January 2, 2006 at 15:04:05"))
