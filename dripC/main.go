@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"strings"
+	"time"
 )
 
 var color string
@@ -33,13 +34,38 @@ var colors = []string{
 	"\033[38;5;34m",  // Blueviolet
 	"\033[38;5;208m", // Sea green
 	"\033[38;5;166m", // Coral
+	"\033[38;5;217m", // Light pink"
+	"\033[38;5;183m", // lavender
 }
 
+var usage string = `
+Usage: dripC [-h | --help] [(-|--)EACHLN | (-|--)TIMED |]
+	Modes can be styled as flags or arguments:
+	TIMED: change color after a one-second delay in the input stream.
+	EACHLN: change color for each line in the input stream.
+skipping the mode argument would color all input a single color.`
+
 func main() {
+	if len(os.Args) > 3 || (len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help")) {
+		fmt.Println(usage)
+		return
+	}
 	changeColor()
-	if len(os.Args) == 2 && prep(os.Args[1]) == "EACHLN" {
-		colorEach()
+	//logrus.Debug("os.Args:", os.Args)
+	if len(os.Args) == 2 {
+		//logrus.Debug("mode specified")
+		switch prep(os.Args[1]) {
+		case "EACHLN":
+			colorEach()
+		case "TIMED":
+			timedChange()
+		default:
+			fmt.Print("\033[0m")
+			fmt.Println(usage)
+			return
+		}
 	} else {
+		//logrus.Debug("no mode specified, coloringblock")
 		colorAll()
 	}
 	// reset terminal color
@@ -80,5 +106,40 @@ func colorEach() {
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
+}
+
+func timedChange() {
+	//fmt.Println("starting timed change")
+	timedelay := time.Second
+	input_ch := make(chan string, 5)
+	timerCh := time.After(timedelay)
+	scanner := bufio.NewScanner(os.Stdin)
+	go func() {
+		for scanner.Scan() {
+			input_ch <- scanner.Text()
+			//logrus.Debug("input received")
+		}
+		close(input_ch)
+	}()
+looper:
+	for {
+		select {
+		case <-timerCh:
+			//logrus.Debug("timer ended, changing color")
+			changeColor()
+			timerCh = time.After(timedelay)
+		case input, ok := <-input_ch:
+			//logrus.Debug("input received, timer reset")
+			if !ok {
+				break looper
+			}
+			fmt.Printf("%s\n", input)
+			timerCh = time.After(timedelay)
+		}
+	}
+	//logrus.Debug("exiting looper")
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input failed:", err)
 	}
 }
