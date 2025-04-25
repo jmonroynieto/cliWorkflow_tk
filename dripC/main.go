@@ -113,7 +113,7 @@ func timedChange() {
 	//fmt.Println("starting timed change")
 	timedelay := time.Second
 	input_ch := make(chan string, 5)
-	timerCh := time.After(timedelay)
+	timer := time.NewTimer(timedelay)
 	scanner := bufio.NewScanner(os.Stdin)
 	go func() {
 		for scanner.Scan() {
@@ -125,17 +125,16 @@ func timedChange() {
 looper:
 	for {
 		select {
-		case <-timerCh:
+		case <-timer.C:
 			//logrus.Debug("timer ended, changing color")
 			changeColor()
-			timerCh = time.After(timedelay)
 		case input, ok := <-input_ch:
 			//logrus.Debug("input received, timer reset")
 			if !ok {
 				break looper
 			}
 			fmt.Printf("%s\n", input)
-			timerCh = time.After(timedelay)
+			timer.Reset(timedelay)
 		}
 	}
 	//logrus.Debug("exiting looper")
