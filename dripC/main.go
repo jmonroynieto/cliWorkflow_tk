@@ -111,7 +111,7 @@ func colorEach() {
 
 func timedChange() {
 	//fmt.Println("starting timed change")
-	timedelay := time.Second
+	timedelay := 1500 * time.Millisecond
 	input_ch := make(chan string, 5)
 	timer := time.NewTimer(timedelay)
 	scanner := bufio.NewScanner(os.Stdin)

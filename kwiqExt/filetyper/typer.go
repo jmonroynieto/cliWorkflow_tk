@@ -94,7 +94,8 @@ func mapExtensionToFmtType(path string) FmtType {
 		".xls", ".xlsx", ".xlsm", // Spreadsheets
 		".ppt", ".pptx", // Presentations
 		".odt", ".ods", ".odp", // OpenDocument
-		".msg", ".eml": // Email
+		".msg", ".eml", // Email
+		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub": // Vector graphics except SVG
 		return OFFICE
 	case ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z", ".bz2", ".xz", ".war", ".ear":
 		next := path[:len(path)-len(ext)]
@@ -144,7 +145,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		if bioinfoCK(ext) {
 			return BIOINFO
 		}
-		logrus.Debugf("Extension '%s' not specifically mapped, defaulting to UNKNOWN.", ext)
+		logrus.Debugf("Extension '%s' not specifically mapped, checking through content.", ext)
 		return UNKNOWN
 	}
 }
