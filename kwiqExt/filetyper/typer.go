@@ -85,17 +85,19 @@ func mapExtensionToFmtType(path string) FmtType {
 	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text", "json": // Config formats
 		return TXT
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", // Images
-		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", // Video
-		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus": // Audio
+		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", ".m4b", "vob", // Video
+		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", "aif", "aiff": // Audio
 		return MEDIA
 	case ".pdf":
 		return PDF
 	case ".doc", ".docx", ".rtf", // Word processing
 		".xls", ".xlsx", ".xlsm", // Spreadsheets
-		".ppt", ".pptx", // Presentations
+		".ppt", ".pptx", "ppsx", // Presentations
 		".odt", ".ods", ".odp", // OpenDocument
+		".asd",         // autosave
 		".msg", ".eml", // Email
-		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub": // Vector graphics except SVG
+		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub", // Vector graphics except SVG
+		"psd":
 		return OFFICE
 	case ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z", ".bz2", ".xz", ".war", ".ear":
 		next := path[:len(path)-len(ext)]
