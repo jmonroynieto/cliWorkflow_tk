@@ -18,7 +18,7 @@ type FmtType int
 const (
 	UNKNOWN    FmtType = iota // Failed to identify
 	STRUCTURED                // csv, json, xml, etc
-	TXT                       // Plain text files (.txt, .log, .md, .ini, .cfg, .csv)
+	TXT                       // Plain text files (.txt, .log, .md, .ini, .cfg)
 	MEDIA                     // Images, video, audio
 	PDF                       // Portable Document Format
 	OFFICE                    // Word processor, spreadsheet, presentation files
@@ -82,7 +82,9 @@ func mapExtensionToFmtType(path string) FmtType {
 		return UNKNOWN
 	}
 	switch ext {
-	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text", "json": // Config formats
+	case "csv", "tsv", "json", "xml", "yml", "list": // Structured data
+		return STRUCTURED
+	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text": // Config formats
 		return TXT
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", // Images
 		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", ".m4b", "vob", // Video
@@ -105,7 +107,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		if ext2 == "" || ext2 == "." {
 			return ARCHIVE
 		}
-		if bioinfoCK(ext2) {
+		if bioinfoEXT(ext2) {
 			return BIOINFO
 		}
 		return ARCHIVE
@@ -122,6 +124,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".html", ".htm", ".xhtml", // Markup
 		".css", ".scss", ".sass", // Stylesheets
 		".sql", ".ddl", ".dml", // Database scripts
+		".r",          // Others
 		".nf", ".smk": // bioinfo workflow
 		return SOURCE
 	case ".mod", ".sum":
@@ -144,7 +147,7 @@ func mapExtensionToFmtType(path string) FmtType {
 	case ".iso", ".img", ".vdi", ".vhd", ".vmdk", ".dmg", ".bbolt", ".cayley", "db":
 		return ARCHIVE
 	default:
-		if bioinfoCK(ext) {
+		if bioinfoEXT(ext) {
 			return BIOINFO
 		}
 		logrus.Debugf("Extension '%s' not specifically mapped, checking through content.", ext)
@@ -152,13 +155,13 @@ func mapExtensionToFmtType(path string) FmtType {
 	}
 }
 
-func bioinfoCK(ext string) bool {
+func bioinfoEXT(ext string) bool {
 	switch ext {
 	case ".fasta", ".fastq", ".fa", ".fq", ".fas", ".ffn", ".faa",
 		".fna", ".fsa", ".aln", ".fai", ".bai", ".crai", ".maf",
 		".clustal", ".phy", ".phylip", ".nwk", ".newick",
 		".sam", ".bam", ".cram", ".vcf", ".gff", ".gff3", ".gtf", ".gff2", ".bed",
-		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch":
+		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", "mzxml":
 		return true
 	default:
 		return false
@@ -183,7 +186,7 @@ func mimeTypeContent(filePath string) (FmtType, error) {
 	kind := HeaderTest(file)
 
 	if kind == types.Unknown {
-		logrus.Debugf("Header match inconclusive for %s. Falling back to extension.", filePath)
+		logrus.Debugf("Header match inconclusive for %s -> Falling back to extension.", filePath)
 		return UNKNOWN, nil
 	}
 	return mapKindToFmtType(kind), nil
