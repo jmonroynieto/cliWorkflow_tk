@@ -82,13 +82,13 @@ func mapExtensionToFmtType(path string) FmtType {
 		return UNKNOWN
 	}
 	switch ext {
-	case "csv", "tsv", "json", "xml", "yml", "list": // Structured data
+	case ".csv", ".tsv", ".json", ".xml", ".yml", ".list": // Structured data
 		return STRUCTURED
 	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text": // Config formats
 		return TXT
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", // Images
 		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", ".m4b", "vob", // Video
-		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", "aif", "aiff": // Audio
+		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", ".aif", ".aiff",".plist": // Audio
 		return MEDIA
 	case ".pdf":
 		return PDF
@@ -161,7 +161,7 @@ func bioinfoEXT(ext string) bool {
 		".fna", ".fsa", ".aln", ".fai", ".bai", ".crai", ".maf",
 		".clustal", ".phy", ".phylip", ".nwk", ".newick",
 		".sam", ".bam", ".cram", ".vcf", ".gff", ".gff3", ".gtf", ".gff2", ".bed",
-		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", "mzxml":
+		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", ".mzxml":
 		return true
 	default:
 		return false
