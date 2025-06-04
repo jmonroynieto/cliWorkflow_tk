@@ -74,7 +74,7 @@ func DetermineFMTtype(filePath string) (FmtType, error) {
 // primary method
 func mapExtensionToFmtType(path string) FmtType {
 	sanitizedPath := path
-	if strings.HasPrefix(path, ".") {
+	if strings.HasPrefix(filepath.Base(path), ".") {
 		sanitizedPath = path[1:]
 	}
 	ext := strings.ToLower(filepath.Ext(sanitizedPath))
@@ -88,7 +88,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		return TXT
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", // Images
 		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", ".m4b", "vob", // Video
-		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", ".aif", ".aiff",".plist": // Audio
+		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", ".aif", ".aiff", ".plist": // Audio
 		return MEDIA
 	case ".pdf":
 		return PDF
@@ -186,7 +186,7 @@ func mimeTypeContent(filePath string) (FmtType, error) {
 	kind := HeaderTest(file)
 
 	if kind == types.Unknown {
-		logrus.Debugf("Header match inconclusive for %s -> Falling back to extension.", filePath)
+		logrus.Debugf("Header match inconclusive for %s ", filePath)
 		return UNKNOWN, nil
 	}
 	return mapKindToFmtType(kind), nil
