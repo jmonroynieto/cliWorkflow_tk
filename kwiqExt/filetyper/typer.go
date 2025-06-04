@@ -82,7 +82,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		return UNKNOWN
 	}
 	switch ext {
-	case ".csv", ".tsv", ".json", ".xml", ".yml", ".list": // Structured data
+	case ".csv", ".tsv", ".json", ".xml", ".yml", ".list", ".yaml": // Structured data
 		return STRUCTURED
 	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text": // Config formats
 		return TXT
@@ -101,7 +101,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub", // Vector graphics except SVG
 		"psd":
 		return OFFICE
-	case ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z", ".bz2", ".xz", ".war", ".ear":
+	case ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z", ".bz2", ".xz", ".war", ".ear", ".dat":
 		next := path[:len(path)-len(ext)]
 		ext2 := strings.ToLower(filepath.Ext(next))
 		if ext2 == "" || ext2 == "." {
@@ -112,7 +112,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		}
 		return ARCHIVE
 	// Source code
-	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", ".zig", ".odin", "rs", // Compiled languages
+	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", "dart",".zig", ".odin", "rs", // Compiled languages
 		".hh", ".cc",
 		".py", ".pyc", ".pyd", ".pyo", // Python (source, compiled)
 		".js", ".mjs", ".cjs", // JavaScript
