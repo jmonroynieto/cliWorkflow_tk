@@ -112,7 +112,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		}
 		return ARCHIVE
 	// Source code
-	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", "dart",".zig", ".odin", "rs", // Compiled languages
+	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", ".dart",".zig", ".odin", "rs", // Compiled languages
 		".hh", ".cc",
 		".py", ".pyc", ".pyd", ".pyo", // Python (source, compiled)
 		".js", ".mjs", ".cjs", // JavaScript
