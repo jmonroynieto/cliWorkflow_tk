@@ -112,7 +112,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		}
 		return ARCHIVE
 	// Source code
-	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", ".dart",".zig", ".odin", "rs", // Compiled languages
+	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", ".dart", ".zig", ".odin", "rs", // Compiled languages
 		".hh", ".cc",
 		".py", ".pyc", ".pyd", ".pyo", // Python (source, compiled)
 		".js", ".mjs", ".cjs", // JavaScript
@@ -138,7 +138,8 @@ func mapExtensionToFmtType(path string) FmtType {
 		".msi",         // Windows installer
 		".deb", ".rpm", // Linux packages
 		".bin", // Generic binary, often executable or firmware
-		".elf", ".lib":
+		".elf", ".lib",
+		".lock": //don't know where else to put it
 		return BINEXEC
 
 	case ".ttf", ".otf", ".woff", ".woff2", ".eot":
