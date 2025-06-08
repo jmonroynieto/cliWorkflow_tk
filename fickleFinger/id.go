@@ -32,10 +32,11 @@ func GenerateID(cCtx context.Context, cmd *cli.Command) error {
 	return nil
 
 }
+
 func isInRange(n int) bool {
 	ranges := [][2]int{
-		{48, 57}, // 0-9
-		{65, 90}, // A-Z
+		{48, 57},  // 0-9
+		{65, 90},  // A-Z
 		{97, 122}, // a-z
 	}
 
@@ -62,4 +63,9 @@ var idFlags []cli.Flag = []cli.Flag{
 		Usage:       "no new line at the end of the id",
 		Destination: &noNewline,
 	},
+}
+
+func ParamSet(nn int64, lib_noNewline bool) {
+	n = nn
+	noNewline = lib_noNewline
 }
