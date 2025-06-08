@@ -13,7 +13,7 @@ var (
 	noNewline bool
 )
 
-func generateID(cCtx context.Context, cmd *cli.Command) error {
+func GenerateID(cCtx context.Context, cmd *cli.Command) error {
 
 	var b = make([]byte, 0, n)
 	var formatTemplate string
@@ -34,9 +34,9 @@ func generateID(cCtx context.Context, cmd *cli.Command) error {
 }
 func isInRange(n int) bool {
 	ranges := [][2]int{
-		{48, 57},
-		{65, 90},
-		{97, 122},
+		{48, 57}, // 0-9
+		{65, 90}, // A-Z
+		{97, 122}, // a-z
 	}
 
 	for _, r := range ranges {

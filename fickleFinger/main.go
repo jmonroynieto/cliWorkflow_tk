@@ -11,7 +11,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = ".1"
 	CommitId = ""
 )
 
@@ -53,7 +53,7 @@ var appCmds []*cli.Command = []*cli.Command{
 	{
 		Name:   "id",
 		Usage:  "generate random id",
-		Action: generateID,
+		Action: GenerateID,
 		Flags:  idFlags,
 	},
 }
