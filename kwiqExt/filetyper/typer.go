@@ -86,7 +86,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		return STRUCTURED
 	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text": // Config formats
 		return TXT
-	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", // Images
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", ".rw2", // Images
 		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", ".m4b", "vob", // Video
 		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", ".aif", ".aiff", ".plist": // Audio
 		return MEDIA
@@ -98,7 +98,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".odt", ".ods", ".odp", // OpenDocument
 		".asd",         // autosave
 		".msg", ".eml", // Email
-		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub", // Vector graphics except SVG
+		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub", ".xmp", // Vector graphics except SVG
 		"psd":
 		return OFFICE
 	case ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z", ".bz2", ".xz", ".war", ".ear", ".dat":
