@@ -162,7 +162,8 @@ func bioinfoEXT(ext string) bool {
 		".fna", ".fsa", ".aln", ".fai", ".bai", ".crai", ".maf",
 		".clustal", ".phy", ".phylip", ".nwk", ".newick",
 		".sam", ".bam", ".cram", ".vcf", ".gff", ".gff3", ".gtf", ".gff2", ".bed",
-		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", ".mzxml":
+		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", ".mzxml",
+		".blast", ".blastn", ".tblast", ".tblastx", ".tblastn", ".tblastp":
 		return true
 	default:
 		return false
