@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 	"maps"
-	"os"
-	"reflect"
+	"regexp"
+	"sort"
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
@@ -29,129 +29,68 @@ func printStatement(line int, stmt *syntax.Stmt) {
 	var buf bytes.Buffer
 	syntax.NewPrinter().Print(&buf, stmt)
 	// bold blue for statement lines
-	fmt.Printf("\033[1;34m%d:\033[0m %s\n", line, buf.String())
+	fmt.Printf("\033[1;34m%d:\033[0m \033[36m%s\033[0m\n", line, buf.String())
 }
-
-func dumpNode(node syntax.Node, depth int) {
-	if node == nil {
-		return
-	}
-	syntax.DebugPrint(os.Stdout, node)
+func printNode(node syntax.Node, depth int) {
+	//syntax.DebugPrint(os.Stdout, node)
 	// print this node
 	indent := strings.Repeat("\t", depth)
 	var buf bytes.Buffer
 	syntax.NewPrinter().Print(&buf, node)
 	fmt.Printf("%s└─ %T — %q\n", indent, node, buf.String())
 
-	// walk children (return true to descend)
-	syntax.Walk(node, func(child syntax.Node) bool {
-		if child == nil {
+}
+
+func dumpNode(root syntax.Node) {
+	var depth int
+	syntax.Walk(root, func(n syntax.Node) bool {
+		if n == nil {
+			depth--
 			return false
 		}
-		if child != node {
-			dumpNode(child, depth+1)
-		}
-		return true // allow descent into each child
+		printNode(n, depth)
+		depth++
+		return true // recurse into children
 	})
 }
 
-func dumpNode2(node syntax.Node, depth int) {
-	if node == nil {
-		return
-	}
+func cleanPath(s string) []byte {
+	// Define the regular expression pattern to match unwanted prefixes
+	pattern := regexp.MustCompile(`^(\.\.\/|\.\/|\.|~/|\\|{)`)
 
-	// Print this node
-	indent := strings.Repeat("\t", depth)
-	var buf bytes.Buffer
-	syntax.NewPrinter().Print(&buf, node)
-	fmt.Printf("%s└─ %T — %q\n", indent, node, buf.String())
-
-	// Get immediate children using reflection
-	kids := getImmediateChildren(node)
-
-	// Recurse on each immediate child
-	for _, child := range kids {
-		if child != nil {
-			dumpNode2(child, depth+1)
+	for {
+		// Find the longest prefix match
+		prefix := pattern.FindString(s)
+		if prefix == "" {
+			break // No more prefixes to remove
 		}
+		// Remove the matched prefix
+		s = s[len(prefix):]
 	}
+
+	// Handle cases where the entire string was one of the unwanted patterns
+	if s == "." || s == ".." || s == "./" || s == "../" {
+		return []byte("")
+	}
+
+	return []byte(strings.ToLower(s))
 }
 
-func getImmediateChildren(node syntax.Node) []syntax.Node {
-	if node == nil {
-		return nil
+type item struct {
+	orig string
+	key  []byte
+}
+
+func sortByClean(cmds []string) {
+	arr := make([]item, len(cmds))
+	for i, s := range cmds {
+		arr[i].orig = s
+		arr[i].key = cleanPath(s) // sanitize into []byte
 	}
-
-	var kids []syntax.Node
-	seen := make(map[syntax.Node]bool)
-
-	// Use reflection to inspect the node's fields
-	val := reflect.ValueOf(node)
-	if val.Kind() == reflect.Ptr {
-		if val.IsNil() {
-			return nil
-		}
-		val = val.Elem()
+	sort.Slice(arr, func(i, j int) bool {
+		return bytes.Compare(arr[i].key, arr[j].key) < 0
+	})
+	for i := range cmds {
+		cmds[i] = arr[i].orig
 	}
-
-	// If it's not a struct, it has no children
-	if val.Kind() != reflect.Struct {
-		return nil
-	}
-
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-
-		// Skip unexported fields
-		if !field.CanInterface() {
-			continue
-		}
-
-		// Handle pointer to Node
-		if field.Kind() == reflect.Ptr {
-			if node, ok := field.Interface().(syntax.Node); ok {
-				if node != nil && !seen[node] {
-					kids = append(kids, node)
-					seen[node] = true
-				}
-			}
-			continue
-		}
-
-		// Handle slice of Nodes
-		if field.Kind() == reflect.Slice {
-			// Check if the slice elements are Nodes
-			if field.Type().Elem().Implements(reflect.TypeOf((*syntax.Node)(nil)).Elem()) {
-				for j := 0; j < field.Len(); j++ {
-					item := field.Index(j).Interface().(syntax.Node)
-					if item != nil && !seen[item] {
-						kids = append(kids, item)
-						seen[item] = true
-					}
-				}
-			}
-			continue
-		}
-
-		// Handle direct Node value (not pointer)
-		if node, ok := field.Interface().(syntax.Node); ok {
-			if node != nil && !seen[node] {
-				kids = append(kids, node)
-				seen[node] = true
-			}
-			continue
-		}
-
-		// Handle struct fields that might themselves contain nodes
-		if field.Kind() == reflect.Struct {
-			if node, ok := field.Addr().Interface().(syntax.Node); ok {
-				if node != nil && !seen[node] {
-					kids = append(kids, node)
-					seen[node] = true
-				}
-			}
-		}
-	}
-
-	return kids
 }

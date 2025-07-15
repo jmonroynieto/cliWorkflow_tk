@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"maps"
 	"math/rand/v2"
 	"os"
 	"reflect"
@@ -67,23 +66,43 @@ func main() {
 
 func searchFile(path string) {
 	data, _ := os.ReadFile(path)
-	parser := syntax.NewParser()
-	file, _ := parser.Parse(bytes.NewReader(data), "")
-	cmds := map[string]struct{}{}
+	lines := strings.Split(string(data), "\n")
+	linecount := len(lines)
+	logrus.Info("total lines: ", linecount)
+	var cmds = make(map[string]int, 1024)
 
-	syntax.Walk(file, func(node syntax.Node) bool {
-		call, ok := node.(*syntax.CallExpr)
+	for _, strLine := range lines {
 
-		if ok && len(call.Args) > 0 {
-			if lit, ok := call.Args[0].Parts[0].(*syntax.Lit); ok {
-				cmds[lit.Value] = struct{}{}
+		parser := syntax.NewParser()
+		file, _ := parser.Parse(bytes.NewReader([]byte(strLine)), "")
+
+		syntax.Walk(file, func(node syntax.Node) bool {
+			call, ok := node.(*syntax.CallExpr)
+
+			if ok && len(call.Args) > 0 {
+				if lit, ok := call.Args[0].Parts[0].(*syntax.Lit); ok {
+					cmds[lit.Value]++
+				} else if _, ok := call.Args[0].Parts[0].(*syntax.ParamExp); ok {
+					//TODO:complete param expansion
+				} else if logrus.GetLevel() >= logrus.DebugLevel {
+					logrus.Error("unexpected non-literal in node at command position")
+					fmt.Printf("\033[1;31m%s\033[0m\n", strLine)
+					syntax.DebugPrint(os.Stdout, node)
+				}
 			}
+			return true
+		})
+	}
+	cmdslice := make([]string, 0, len(cmds))
+	for cmd := range cmds {
+		cmdslice = append(cmdslice, cmd)
+	}
+	sortByClean(cmdslice)
+	for _, cmd := range cmdslice {
+		if cmd == "" || cmd == " " {
+			continue
 		}
-		return true
-	})
-
-	for cmd := range maps.Keys(cmds) {
-		fmt.Println(cmd)
+		fmt.Printf("%s\n", cmd)
 	}
 }
 
@@ -131,7 +150,7 @@ func tokenBreakdown(path string) {
 					continue
 				}
 				printStatement(line, stmt)
-				dumpNode(stmt, 0)
+				dumpNode(stmt)
 			}
 		}
 	}
