@@ -17,7 +17,7 @@ install_dir := /home/pollo/Local/bin/
 .PHONY: install
 install:
 		@mkdir -p $(install_dir)
-		@for tool in ansCRUBi ansible barker calshow chaptor cw describeFiles dripC fickleFinger filterMyCal indexFiles kompti kwiqExt mdMake megalophobia quoteadder watchAdir xwin zustellen; do \
+		@for tool in $(TOOLS) ; do \
 			echo "--- Installing $$tool ---" ;\
 			install -p $(build_dir)$$tool $(install_dir)/$$tool; \
 		done
