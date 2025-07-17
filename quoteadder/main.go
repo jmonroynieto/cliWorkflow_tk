@@ -26,9 +26,18 @@ var (
 func main() {
 	// Check that the user has provided a filename.
 	if len(os.Args) < 2 {
-		fmt.Printf("QUOTEADDER\nv%s (%s)\n", Version+Revision, CommitId)
+		fmt.Printf("quoteadder v%s (%s)\n", Version+Revision, CommitId)
 		fmt.Println("Please provide a filename.")
 		return
+	}
+	switch os.Args[1] {
+	case "-h", "--help":
+		fmt.Printf("quoteadder v%s (%s)\n", Version+Revision, CommitId)
+		fmt.Println("Usage: quoteadder <filename>")
+		os.Exit(0)
+	case "-v", "--version":
+		fmt.Printf("quoteadder v%s (%s)\n", Version+Revision, CommitId)
+		os.Exit(0)
 	}
 	//use flags to determine if the user wants to use normally and use the first argument or use debug mode
 	var debug *bool = flag.Bool("debug", false, "use mock data instead of user input")

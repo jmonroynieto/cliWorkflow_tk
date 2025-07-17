@@ -107,7 +107,7 @@ func validArguments(args []string) string {
 		fmt.Println("Usage: cedula <path_to_package_directory>")
 		os.Exit(0)
 	case "-v", "--version":
-		fmt.Printf("cedula %s-%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("cedula %s%s (%s)\n", Version, Revision, CommitId)
 		os.Exit(0)
 	}
 

@@ -10,8 +10,13 @@ import (
 	"time"
 )
 
-var color string
-var old string
+var (
+	Version  string
+	Revision = ".0"
+	CommitId string
+	color    string
+	old      string
+)
 
 var colors = []string{
 	"\033[31m",       // Red
@@ -38,8 +43,7 @@ var colors = []string{
 	"\033[38;5;183m", // lavender
 }
 
-var usage string = `
-Usage: dripC [-h | --help] [(-|--)EACHLN | (-|--)TIMED |]
+var usage string = `Usage: dripC [-h | --help] [(-|--)EACHLN | (-|--)TIMED |]
 	Modes can be styled as flags or arguments:
 	TIMED: change color after a one-second delay in the input stream.
 	EACHLN: change color for each line in the input stream.
@@ -47,7 +51,11 @@ skipping the mode argument would color all input a single color.`
 
 func main() {
 	if len(os.Args) > 3 || (len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help")) {
+		fmt.Printf("dripC v%s%s (%s)\n", Version,Revision, CommitId)
 		fmt.Println(usage)
+		return
+	} else if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+		fmt.Printf("dripC v%s%s (%s)\n", Version,Revision, CommitId)
 		return
 	}
 	changeColor()

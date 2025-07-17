@@ -89,7 +89,7 @@ func main() {
 
 		Name:    "xwindows",
 		Usage:   "list open windows",
-		Version: fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+		Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 		Action:  listOpenWindows,
 	}).Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)

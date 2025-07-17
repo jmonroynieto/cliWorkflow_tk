@@ -16,6 +16,12 @@ import (
 	"github.com/pydpll/errorutils"
 )
 
+var (
+	Version  string
+	Revision = ".0"
+	CommitId string
+)
+
 const notesFileName = "description.notes"
 const programMSG = "\t\033[33m"
 const colorReset = "\033[0m"
@@ -39,8 +45,16 @@ func main() {
 			fmt.Println("Error running program:", err)
 			os.Exit(1)
 		}
-		os.Exit(0)
+		return
 
+	}
+	switch args[0] {
+	case "-h", "--help":
+		fmt.Println("I'll tell you how to use it soon. Sorry #todo")
+		return
+	case "-v", "--version", "-version":
+		fmt.Printf("describeFiles v%s%s (%s)\n", Version, Revision, CommitId)
+		return
 	}
 
 	notes, err := readNotesFile()

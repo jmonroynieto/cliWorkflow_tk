@@ -13,6 +13,12 @@ import (
 	"github.com/pydpll/errorutils"
 )
 
+var (
+	Version  string
+	Revision = ".0"
+	CommitId string
+)
+
 type line struct {
 	Line      int `json:"line"`
 	Character int `json:"character"`
@@ -69,6 +75,14 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("filename is required")
 		os.Exit(1)
+	}
+	switch os.Args[1] {
+	case "-h", "--help":
+		fmt.Println(usage)
+		return
+	case "-v", "--version":
+		fmt.Printf("zustellen v%s%s (%s)\n", Version, Revision, CommitId)
+		return
 	}
 	annotee := os.Args[1]
 	if _, err := os.Stat(annotee); os.IsNotExist(err) {

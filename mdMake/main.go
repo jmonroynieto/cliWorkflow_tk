@@ -10,8 +10,8 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
-	CommitID string
+	Revision = ".1"
+	CommitId string
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 	flag.BoolVar(PrintVersion, "version", false, "version")
 	flag.Parse()
 	if *PrintVersion {
-		fmt.Println("Version:", Version, " CommitID:", CommitID)
+		fmt.Printf("mdMake v%s%s (%s)\n", Version, Revision, CommitId)
 		os.Exit(0)
 	}
 	// Read input from stdin

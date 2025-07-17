@@ -26,7 +26,7 @@ func generateJitter(c context.Context, cmd *cli.Command) error {
 }
 
 var jitterFlags []cli.Flag = []cli.Flag{
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Name:        "amount",
 		Aliases:     []string{"a"},
 		Usage:       "amount of numbers to generate",
@@ -34,7 +34,7 @@ var jitterFlags []cli.Flag = []cli.Flag{
 		Required:    false,
 		Value:       10,
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Name:        "start",
 		Aliases:     []string{"s"},
 		Usage:       "start of the range",
@@ -42,7 +42,7 @@ var jitterFlags []cli.Flag = []cli.Flag{
 		Required:    false,
 		Value:       0,
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Name:        "end",
 		Aliases:     []string{"e"},
 		Usage:       "end of the range",

@@ -22,7 +22,7 @@ var (
 func main() {
 	sort.Sort(cli.FlagsByName(appFlags))
 	app := &cli.Command{
-		Name:     "name",
+		Name:     "barker",
 		Usage:    "usage",
 		Flags:    appFlags,
 		Commands: appCmds,

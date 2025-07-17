@@ -1,6 +1,6 @@
 GIT_TAG := $(shell git rev-parse --short HEAD)
 build_dir := build/
-TOOLS := ansCRUBi ansible barker calshow chaptor cw describeFiles dripC fickleFinger filterMyCal indexFiles kompti kwiqExt mdMake megalophobia quoteadder shFossils watchAdir xwin zustellen
+TOOLS := ansCRUBi ansible barker calshow cedula chaptor cw describeFiles dripC fickleFinger filterMyCal indexFiles kompti kwiqExt mdMake megalophobia quoteadder shFossils watchAdir xwin zustellen
 install_dir := /home/pollo/Local/bin/
 
 .PHONY: build

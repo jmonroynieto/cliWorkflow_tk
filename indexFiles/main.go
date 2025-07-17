@@ -72,7 +72,7 @@ var appFlags []cli.Flag = []cli.Flag{
 			return e
 		},
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Name:        "workers",
 		Aliases:     []string{"w"},
 		Destination: &workersNum,
