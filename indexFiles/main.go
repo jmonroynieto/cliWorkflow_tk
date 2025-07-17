@@ -48,12 +48,11 @@ var appFlags []cli.Flag = []cli.Flag{
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 			return nil
-
 		},
 	},
 	&cli.StringFlag{
 		Name:     "examine",
-		Aliases:  []string{"e", "i"}, //input
+		Aliases:  []string{"e", "i"}, // input
 		Usage:    "`DIR` to examine",
 		Required: true,
 	},
