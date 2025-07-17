@@ -90,7 +90,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", ".m4b", "vob", // Video
 		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", ".aif", ".aiff", ".plist": // Audio
 		return MEDIA
-	case ".pdf":
+	case ".pdf", ".epub":
 		return PDF
 	case ".doc", ".docx", ".rtf", // Word processing
 		".xls", ".xlsx", ".xlsm", // Spreadsheets
@@ -124,7 +124,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".html", ".htm", ".xhtml", // Markup
 		".css", ".scss", ".sass", // Stylesheets
 		".sql", ".ddl", ".dml", // Database scripts
-		".r",          // Others
+		".r", ".apk", // Others
 		".nf", ".smk": // bioinfo workflow
 		return SOURCE
 	case ".mod", ".sum":
@@ -163,6 +163,7 @@ func bioinfoEXT(ext string) bool {
 		".clustal", ".phy", ".phylip", ".nwk", ".newick",
 		".sam", ".bam", ".cram", ".vcf", ".gff", ".gff3", ".gtf", ".gff2", ".bed",
 		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", ".mzxml",
+		".ugap",
 		".blast", ".blastn", ".tblast", ".tblastx", ".tblastn", ".tblastp":
 		return true
 	default:

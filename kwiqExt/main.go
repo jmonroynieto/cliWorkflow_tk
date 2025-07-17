@@ -15,7 +15,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".3"
+	Revision = ".4"
 	CommitId string
 )
 
