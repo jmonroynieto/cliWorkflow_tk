@@ -19,6 +19,6 @@ install:
 		@mkdir -p $(install_dir)
 		@for tool in $(TOOLS) ; do \
 			echo "--- Installing $$tool ---" ;\
-			install -p $(build_dir)$$tool $(install_dir)/$$tool; \
+			install -p $(build_dir)$$tool $(install_dir)/$$tool && rm $(build_dir)$$tool || echo "=== Failed installing $$tool ===" \
 		done
-		@rm -r ${build_dir}
+		@rm -d ${build_dir}
