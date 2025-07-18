@@ -13,6 +13,12 @@ import (
 	"github.com/pydpll/errorutils"
 )
 
+var (
+	Version  string
+	Revision = ".0"
+	CommitId string
+)
+
 type line struct {
 	Line      int `json:"line"`
 	Character int `json:"character"`
@@ -37,7 +43,7 @@ func shouldContinue() bool {
 			if response == "y" || response == "n" || response == "yes" || response == "no" {
 				return nil
 			}
-			//reset the input of promptui
+			// reset the input of promptui
 			return fmt.Errorf("invalid input: backspace and try again")
 		},
 	}
@@ -65,10 +71,18 @@ func main() {
 	outputfilename := "breakpoints.json"
 	var f *os.File
 
-	//annotee is required
+	// annotee is required
 	if len(os.Args) < 2 {
 		fmt.Println("filename is required")
 		os.Exit(1)
+	}
+	switch os.Args[1] {
+	case "-h", "--help":
+		fmt.Println(usage)
+		return
+	case "-v", "--version":
+		fmt.Printf("zustellen version %s%s (%s)\n", Version, Revision, CommitId)
+		return
 	}
 	annotee := os.Args[1]
 	if _, err := os.Stat(annotee); os.IsNotExist(err) {
@@ -78,17 +92,17 @@ func main() {
 	var fErr error
 	permission := os.O_RDWR | os.O_CREATE
 	if _, err := os.Stat(".vscode"); os.IsNotExist(err) {
-		//stat the current directory file
+		// stat the current directory file
 		if _, err := os.Stat(outputfilename); os.IsNotExist(err) {
 			f, fErr = os.Create(outputfilename)
 		} else {
-			f, fErr = os.OpenFile(outputfilename, permission, 0644)
+			f, fErr = os.OpenFile(outputfilename, permission, 0o644)
 		}
 	} else {
 		if _, err = os.Stat(".vscode/breakpoints.json"); os.IsNotExist(err) {
 			f, fErr = os.Create(".vscode/breakpoints.json")
 		} else {
-			f, fErr = os.OpenFile(".vscode/breakpoints.json", permission, 0644)
+			f, fErr = os.OpenFile(".vscode/breakpoints.json", permission, 0o644)
 		}
 	}
 	if fErr != nil {
@@ -98,16 +112,16 @@ func main() {
 	defer f.Close()
 
 	fmt.Println(usage)
-	//get the filename without the path
-	//split on the last slash
+	// get the filename without the path
+	// split on the last slash
 	var oldCounter, newCounter int
 	var c collection
 	var l Punkt
 
-	//read all the breakpoint file into dat
+	// read all the breakpoint file into dat
 	dat, err := io.ReadAll(f)
 	errorutils.ExitOnFail(err)
-	//unmarshal the json
+	// unmarshal the json
 	err = json.Unmarshal(dat, &c)
 	if err != nil {
 		if err.Error() == "unexpected end of JSON input" && len(c) == 0 {
@@ -132,7 +146,7 @@ func main() {
 			fmt.Printf("unexpected error %v", err)
 			continue
 		}
-		//when input is control character trl-] exit
+		// when input is control character trl-] exit
 		text = strings.TrimSpace(text)
 		if strings.Contains(text, "\x1d") {
 			fmt.Printf("\x1b[33mYou inputed %d new logpoints to your previous %d!\x1b[0m\n", newCounter, oldCounter)
@@ -151,18 +165,18 @@ func main() {
 		lineNo, err := strconv.Atoi(strings.TrimSpace(split[0]))
 		if err != nil {
 			fmt.Printf("\x1b[31m\tbad input – try again\x1b[0m\n")
-			//reset ansii color
+			// reset ansii color
 			fmt.Printf("\x1b[0m")
 			fmt.Printf("Failed – %s\n", text)
 			continue
 		}
 
-		//set all attributes of the punkt
-		//message is a whitespace stripped version of the input text
+		// set all attributes of the punkt
+		// message is a whitespace stripped version of the input text
 		if len(split) < 2 || strings.TrimSpace(split[1]) == "" {
 			l.LogMessage = ""
 		} else {
-			//if text starts with ~, set condition
+			// if text starts with ~, set condition
 			if strings.HasPrefix(split[1], "~") {
 				cndt := strings.TrimSpace(split[1])
 				cndt = strings.TrimPrefix(cndt, "~")
@@ -174,7 +188,7 @@ func main() {
 		l.Lines = []line{{lineNo - 1, 0}, {lineNo - 1, 0}}
 		c = append(c, l)
 		fmt.Printf("Entered – %s\n", strings.Trim(text, ":"))
-		//reset
+		// reset
 		l.Lines = nil
 		l.LogMessage = ""
 		l.Enabled = true
@@ -190,7 +204,7 @@ func main() {
 		fmt.Printf("\x1b[33m\tNo breakpoints to write, exiting\x1b[0m\n")
 		os.Exit(0)
 	}
-	//overwrite the file
+	// overwrite the file
 	f.Truncate(0)
 	f.Seek(0, 0)
 	f.Write(b)

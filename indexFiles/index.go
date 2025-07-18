@@ -43,13 +43,13 @@ func run(dirPath, outputPath string) {
 		_, err = writer.WriteString("Path\tidentity\tSymlink\n")
 		if err != nil {
 			fmt.Println("Error writing header:", err)
-			return //writer goroutine
+			return // writer goroutine
 		}
 		var errorCounter int
 		for info := range fileInfoChan {
 			if errorCounter > 5 {
 				fmt.Fprintf(os.Stderr, "Too many errors, terminating worker")
-				return //writer goroutine
+				return // writer goroutine
 			}
 			line := fmt.Sprintf("%s\t%s\t%t\n", info.Path, info.Identity, info.IsSym)
 			_, err := writer.WriteString(line)
@@ -90,7 +90,7 @@ func run(dirPath, outputPath string) {
 				fileInfo, err := processFile(path, &copyBuf)
 				if err != nil {
 					fmt.Println("Error processing file:", path, err)
-					return //worker goroutine
+					return // worker goroutine
 				}
 				fileInfoChan <- fileInfo
 			}

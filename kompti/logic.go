@@ -5,8 +5,7 @@ import (
 	"time"
 )
 
-//var dawnOJuan = time.Date(2018, 3, 1, 0, 0, 0, 0, time.UTC)
-
+// var dawnOJuan = time.Date(2018, 3, 1, 0, 0, 0, 0, time.UTC)
 func parseMonthYear(dateStr string) (int, int, error) {
 	// Define potential layouts for parsing
 	layouts := []string{
@@ -28,8 +27,15 @@ func parseMonthYear(dateStr string) (int, int, error) {
 	return 0, 0, fmt.Errorf("error parsing date: %s", dateStr)
 }
 
-func transform(y, m int) int {
+func transformInto(y, m int) int {
 	return ((-4 * y) + 8294) - ((m - 1) / 3)
+}
+
+func transformBack(x int) (y, m int) {
+	y = ((x - 8294) / -4)
+	// m = (x - 8294) + 4*(y+1)
+	m = 8294 + 1 - x - 4*y
+	return
 }
 
 func getToday() (int, int, error) {

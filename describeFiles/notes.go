@@ -16,9 +16,17 @@ import (
 	"github.com/pydpll/errorutils"
 )
 
-const notesFileName = "description.notes"
-const programMSG = "\t\033[33m"
-const colorReset = "\033[0m"
+var (
+	Version  string
+	Revision = ".0"
+	CommitId string
+)
+
+const (
+	notesFileName = "description.notes"
+	programMSG    = "\t\033[33m"
+	colorReset    = "\033[0m"
+)
 
 func main() {
 	args := os.Args[1:]
@@ -34,13 +42,21 @@ func main() {
 			tellUSR("Error reading notes file:", err.Error())
 			os.Exit(1)
 		}
-		descriptions := showTable(rows) //bubbletea model
+		descriptions := showTable(rows) // bubbletea model
 		if _, err := tea.NewProgram(model{descriptions}).Run(); err != nil {
 			fmt.Println("Error running program:", err)
 			os.Exit(1)
 		}
-		os.Exit(0)
+		return
 
+	}
+	switch args[0] {
+	case "-h", "--help":
+		fmt.Println("I'll tell you how to use it soon. Sorry #todo")
+		return
+	case "-v", "--version", "-version":
+		fmt.Printf("describeFiles version %s%s (%s)\n", Version, Revision, CommitId)
+		return
 	}
 
 	notes, err := readNotesFile()
@@ -110,7 +126,6 @@ func readNoteFromPrompt(filename string) string {
 	errorutils.ExitOnFail(err, errorutils.WithMsg(fmt.Sprintf("Unexpected error while taking in new note %v", err)))
 
 	return strings.TrimSpace(note)
-
 }
 
 func writeNotesFile(notes map[string]record) error {
@@ -121,7 +136,7 @@ func writeNotesFile(notes map[string]record) error {
 	}
 
 	data := []byte(strings.Join(lines, "\n") + "\n")
-	err := os.WriteFile(notesFileName, data, 0644)
+	err := os.WriteFile(notesFileName, data, 0o644)
 
 	return err
 }
@@ -139,7 +154,7 @@ func retrieveNotesTable() ([]table.Row, error) {
 	var rowmaker []table.Row
 	for scanner.Scan() {
 		line := scanner.Text()
-		fields := strings.Split(line, "\t") //expects three
+		fields := strings.Split(line, "\t") // expects three
 		if len(fields) != 3 && (len(fields) > 2) {
 			errorutils.ExitOnFail(fmt.Errorf("error: table malformed there is a row with malformed fields %q of length: %d", fields, len(fields)))
 		}
@@ -149,7 +164,7 @@ func retrieveNotesTable() ([]table.Row, error) {
 		rowmaker = append(rowmaker, table.Row(fields))
 	}
 	errorutils.ExitOnFail(scanner.Err())
-	//old printer
+	// old printer
 	//	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, '\t', 0)
 	return rowmaker, nil
 }

@@ -37,15 +37,15 @@ func phobia(ctx context.Context, cmd *cli.Command) error {
 		"Pretty sure the incubator is judging my experimental design.",
 		"Final line to show the three-line effect clearly.",
 	}
-	running, err := SetupCapture() //necessary to run: slots in output pipe, spins up goroutines
+	running, err := SetupCapture() // necessary to run: slots in output pipe, spins up goroutines
 	errorutils.ExitOnFail(err)
-	//Necessary to run: Feeder loop by way of printing to "stdout"
+	// Necessary to run: Feeder loop by way of printing to "stdout"
 	for _, s := range strings {
 		fmt.Println(s)
 		if !*running {
 			break
 		}
 	}
-	FinishCapture() //necessary to run: execution terminator BLOCKING
+	FinishCapture() // necessary to run: execution terminator BLOCKING
 	return nil
 }

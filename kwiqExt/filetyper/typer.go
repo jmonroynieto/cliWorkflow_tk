@@ -1,4 +1,4 @@
-package filetper
+package filetyper
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ const (
 	SOURCE                    // Scripts, source code, markup, structured data
 	BINEXEC                   // Binary executables and libraries
 	FONT                      // Font files
-	BIOINFO                   //BAM, FASTA, and other biological sequence formats
+	BIOINFO                   // BAM, FASTA, and other biological sequence formats
 	OTHER                     // Recognized but not categorized
 )
 
@@ -56,13 +56,14 @@ func (ft FmtType) String() string {
 	case OTHER:
 		return "OTHER"
 	case FmtType(222):
-		return "DIR*" //special printing for directories because they are not formally recognized in SPURI where these enum is used in files only.
+		return "DIR*" // special printing for directories because they are not formally recognized in SPURI where these enum is used in files only.
 	case UNKNOWN:
 		return "UNKNOWN"
 	default:
-		return "UNMATCHED" //this should never happen, test for this case and generate catastrophic error asking to fix.
+		return "UNMATCHED" // this should never happen, test for this case and generate catastrophic error asking to fix.
 	}
 }
+
 func DetermineFMTtype(filePath string) (FmtType, error) {
 	mappedType := mapExtensionToFmtType(filePath)
 	if mappedType == UNKNOWN {
@@ -86,11 +87,11 @@ func mapExtensionToFmtType(path string) FmtType {
 		return STRUCTURED
 	case ".txt", ".log", ".md", ".markdown", ".ini", ".cfg", ".conf", ".text": // Config formats
 		return TXT
-	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", // Images
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".heif", ".rw2", // Images
 		".mp4", ".avi", ".mov", ".wmv", ".mkv", ".flv", ".webm", ".mpg", ".mpeg", ".m4b", "vob", // Video
 		".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".opus", ".aif", ".aiff", ".plist": // Audio
 		return MEDIA
-	case ".pdf":
+	case ".pdf", ".epub":
 		return PDF
 	case ".doc", ".docx", ".rtf", // Word processing
 		".xls", ".xlsx", ".xlsm", // Spreadsheets
@@ -98,7 +99,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".odt", ".ods", ".odp", // OpenDocument
 		".asd",         // autosave
 		".msg", ".eml", // Email
-		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub", // Vector graphics except SVG
+		".ai", ".eps", ".afdesign", ".affont", ".afphoto", ".afpub", ".xmp", // Vector graphics except SVG
 		"psd":
 		return OFFICE
 	case ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z", ".bz2", ".xz", ".war", ".ear", ".dat":
@@ -112,7 +113,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		}
 		return ARCHIVE
 	// Source code
-	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", "dart",".zig", ".odin", "rs", // Compiled languages
+	case ".go", ".java", ".class", ".jar", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".m", ".mm", ".dart", ".zig", ".odin", "rs", // Compiled languages
 		".hh", ".cc",
 		".py", ".pyc", ".pyd", ".pyo", // Python (source, compiled)
 		".js", ".mjs", ".cjs", // JavaScript
@@ -124,7 +125,7 @@ func mapExtensionToFmtType(path string) FmtType {
 		".html", ".htm", ".xhtml", // Markup
 		".css", ".scss", ".sass", // Stylesheets
 		".sql", ".ddl", ".dml", // Database scripts
-		".r",          // Others
+		".r", ".apk", // Others
 		".nf", ".smk": // bioinfo workflow
 		return SOURCE
 	case ".mod", ".sum":
@@ -138,7 +139,8 @@ func mapExtensionToFmtType(path string) FmtType {
 		".msi",         // Windows installer
 		".deb", ".rpm", // Linux packages
 		".bin", // Generic binary, often executable or firmware
-		".elf", ".lib":
+		".elf", ".lib",
+		".lock": // don't know where else to put it
 		return BINEXEC
 
 	case ".ttf", ".otf", ".woff", ".woff2", ".eot":
@@ -161,7 +163,9 @@ func bioinfoEXT(ext string) bool {
 		".fna", ".fsa", ".aln", ".fai", ".bai", ".crai", ".maf",
 		".clustal", ".phy", ".phylip", ".nwk", ".newick",
 		".sam", ".bam", ".cram", ".vcf", ".gff", ".gff3", ".gtf", ".gff2", ".bed",
-		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", ".mzxml":
+		".pbd", ".k2d", "dmp", ".hgsketch", ".mash", ".mashsketch", ".mzxml",
+		".ugap",
+		".blast", ".blastn", ".tblast", ".tblastx", ".tblastn", ".tblastp":
 		return true
 	default:
 		return false
@@ -193,7 +197,7 @@ func mimeTypeContent(filePath string) (FmtType, error) {
 }
 
 func HeaderTest(file *os.File) types.Type {
-	//if file is directory return fake directory type
+	// if file is directory return fake directory type
 	if x, _ := file.Stat(); x.IsDir() {
 		return types.Type{
 			MIME: types.MIME{

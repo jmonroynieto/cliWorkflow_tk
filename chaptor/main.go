@@ -37,7 +37,7 @@ func main() {
 	app := &cli.Command{
 		Name:    "chaptor",
 		Usage:   "Royal road chapter extraction",
-		Version: fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+		Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
@@ -87,7 +87,7 @@ func main() {
 						urlList = cmd.Args().Slice()
 					}
 
-					file, err := os.OpenFile(selectFile("chapter"), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+					file, err := os.OpenFile(selectFile("chapter"), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
 					errorutils.WarnOnFail(err, errorutils.WithLineRef("KSLhF2YZIEI"))
 					defer errorutils.NotifyClose(file)
 
@@ -111,13 +111,13 @@ func main() {
 						tocEntry, chapter := requestchapter(url)
 						writer.WriteString(tocEntry)
 						sb.WriteString(chapter)
-						//tracker
+						// tracker
 						fmt.Print(len(urlList) - i)
 						if len(urlList)-i-1 != 0 {
 							sb.WriteString(pagebreak)
 						}
 						time.Sleep(sleepTime)
-						//keep to oneline
+						// keep to oneline
 						fmt.Print("\033[2K\r")
 					}
 					writer.WriteString(`</ul>
@@ -159,7 +159,6 @@ func main() {
 
 	runningErr := app.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(runningErr)
-
 }
 
 func requestchapter(url string) (tocEntry, chapter string) {
@@ -172,7 +171,6 @@ func requestchapter(url string) (tocEntry, chapter string) {
 </li>
 `, id, tt)
 	return
-
 }
 
 func composeChapter(resp *http.Response) (titleText, id, chapter string) {
@@ -246,7 +244,6 @@ func findElement(node *html.Node, typer string, class string) *html.Node {
 				logrus.Debug(fmt.Sprintf("the main cleared %d warnings", y))
 				return node
 			}
-
 		}
 	}
 
@@ -269,7 +266,7 @@ func saveFile(content string) {
 </body>
 </html>`
 	filename := selectFile("chapter")
-	err := os.WriteFile(filename, []byte(header+content+tailer), 0644)
+	err := os.WriteFile(filename, []byte(header+content+tailer), 0o644)
 	errorutils.WarnOnFail(err,
 		errorutils.WithLineRef("j2fUdT6"),
 		errorutils.WithAltPrint(fmt.Sprintln("Chapter saved to:", filename)))
@@ -294,11 +291,10 @@ func saveDoc(doc *html.Node) {
 	err := html.Render(&content, doc)
 	errorutils.WarnOnFail(err, errorutils.WithLineRef("N25EQuAR0Qg"))
 
-	err2 := os.WriteFile(filename, content.Bytes(), 0644)
+	err2 := os.WriteFile(filename, content.Bytes(), 0o644)
 	errorutils.WarnOnFail(err2,
 		errorutils.WithLineRef("OHDwZtUPEJP"),
 		errorutils.WithAltPrint(fmt.Sprintln("Chapter saved to:", filename)))
-
 }
 
 func printMyJS() {

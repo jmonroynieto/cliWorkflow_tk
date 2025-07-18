@@ -12,10 +12,25 @@ import (
 	"github.com/pydpll/errorutils"
 )
 
+var (
+	Version  string
+	Revision = ".0"
+	CommitId string
+)
+
 func main() {
-	//handle args
+	// handle args
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide the CSV file name as an argument")
+		return
+	}
+
+	switch os.Args[1] {
+	case "-v", "--version":
+		fmt.Printf("calshow version %s%s (%s)\n", Version, Revision, CommitId)
+		return
+	case "-h", "--help":
+		fmt.Println("Usage: calshow <csv_file_name>")
 		return
 	}
 	csvFileName := os.Args[1]

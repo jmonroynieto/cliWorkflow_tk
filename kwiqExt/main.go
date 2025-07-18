@@ -15,7 +15,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".3"
+	Revision = ".0"
 	CommitId string
 )
 
@@ -27,7 +27,7 @@ func init() {
 
 var app cli.Command = cli.Command{
 	Name:        "kwiqExt",
-	Version:     fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+	Version:     fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 	Description: "identify file types by category",
 	Commands:    appCMDS,
 	Flags: []cli.Flag{
@@ -60,7 +60,8 @@ var appCMDS = []*cli.Command{
 				Name:  "long",
 				Usage: "display long output including filename and mimetype",
 				Aliases: []string{
-					"l"},
+					"l",
+				},
 			},
 		},
 	},
@@ -72,7 +73,6 @@ var appCMDS = []*cli.Command{
 }
 
 func general(ctx context.Context, cmd *cli.Command) error {
-
 	for _, file := range cmd.Args().Slice() {
 		if i, err := os.Stat(file); err != nil {
 			if errors.Is(err, os.ErrNotExist) {

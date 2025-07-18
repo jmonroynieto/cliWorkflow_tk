@@ -27,7 +27,7 @@ func main() {
 		UsageText: "ansCRUBi [-o] [-f files...]",
 		Usage:     "Removes ansi control characters left over from colorized commands",
 		Flags:     appFlags,
-		Version:   fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+		Version:   fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			// piping only
 			if a := cmd.Args().First(); !cmd.IsSet("files") && (a == "-" || a == "") {
@@ -42,13 +42,13 @@ func main() {
 					errorutils.WarnOnFail(err, errorutils.WithMsg("origin file "+filename+" does not exist"))
 					continue
 				}
-				//open file with permission to overwrite
-				origin, err := os.OpenFile(filename, os.O_RDWR, 0755)
+				// open file with permission to overwrite
+				origin, err := os.OpenFile(filename, os.O_RDWR, 0o755)
 				if err != nil {
 					errorutils.WarnOnFail(err)
 					continue
 				}
-				var w = os.Stdout
+				w := os.Stdout
 				if cmd.Bool("overwrite") {
 					w = origin
 				}
@@ -73,7 +73,6 @@ var appFlags []cli.Flag = []cli.Flag{
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 			return nil
-
 		},
 	},
 	&cli.StringSliceFlag{
@@ -113,14 +112,14 @@ func cleanLines(r io.ReadCloser, regex *regexp.Regexp, w *os.File) error {
 }
 
 func overwrite(temp *os.File, w *os.File) {
-	//quickly replace contents of w with contents of temp
+	// quickly replace contents of w with contents of temp
 	err := w.Truncate(0)
 	errorutils.WarnOnFail(err, errorutils.WithMsg("failed to truncate file"), errorutils.WithLineRef("xWOlo5XlUtO"))
 	_, err = w.Seek(0, io.SeekStart)
 	errorutils.ExitOnFail(err, errorutils.WithMsg("failed to seek file"), errorutils.WithLineRef("VSB4YGUFjm9"))
 	_, err = temp.Seek(0, io.SeekStart)
 	errorutils.ExitOnFail(err, errorutils.WithMsg("failed to seek file"), errorutils.WithLineRef("3sjh4Njxt45"))
-	//read and copy into
+	// read and copy into
 	_, err = io.Copy(w, temp)
 	errorutils.ExitOnFail(err, errorutils.WithMsg("failed to copy file"), errorutils.WithLineRef("eZUXo2Erji5"))
 	err = w.Sync()

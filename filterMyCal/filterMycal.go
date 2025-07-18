@@ -21,14 +21,16 @@ func main() {
 	// Define flags
 	daysFlag := flag.String("d", "", "comma-separated list of days to retain")
 	fileArg := flag.String("f", "", "CSV file to process")
-	versionPrint := flag.Bool("v", false, "print version of the tool")
+	var versionPrint bool
+	flag.BoolVar(&versionPrint, "v", false, "print version of the tool")
+	flag.BoolVar(&versionPrint, "version", false, "print version of the tool")
 	flag.Parse()
-
-	if *daysFlag == "" || *fileArg == "" {
+	if versionPrint {
+		fmt.Printf("filterMyCal version %s%s (%s)\n", Version, Revision, CommitId)
+		return
+	} else if *daysFlag == "" || *fileArg == "" {
 		flag.Usage()
 		os.Exit(1)
-	} else if *versionPrint {
-		fmt.Printf("%s (%s)", Version+Revision, CommitId)
 	}
 
 	// Parse daysFlag into a map for easy lookup

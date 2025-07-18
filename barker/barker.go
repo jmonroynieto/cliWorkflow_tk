@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	Version string
+	Version  string
 	Revision = ".0"
 	CommitId string
 )
@@ -22,11 +22,11 @@ var (
 func main() {
 	sort.Sort(cli.FlagsByName(appFlags))
 	app := &cli.Command{
-		Name:     "name",
+		Name:     "barker",
 		Usage:    "usage",
 		Flags:    appFlags,
 		Commands: appCmds,
-		Version:  fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+		Version:  fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 	}
 
 	app.Run(context.Background(), os.Args)
@@ -42,7 +42,6 @@ var appFlags []cli.Flag = []cli.Flag{
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 			return nil
-
 		},
 	},
 	&cli.StringFlag{
@@ -79,7 +78,7 @@ func action1(ctx context.Context, cmd *cli.Command) error {
 	file := cmd.String("dir")
 	recipient := cmd.String("recipient")
 	walltime := cmd.Int("walltime")
-	//when template is specified, print the template and exit
+	// when template is specified, print the template and exit
 	if cmd.Bool("exp") {
 		fmt.Println("export SMTP_SENDER=\"\"")
 		fmt.Println("export SMTP_PASSWORD=\"\"")
@@ -106,10 +105,10 @@ func action1(ctx context.Context, cmd *cli.Command) error {
 			errorutils.WithExitCode(1),
 		)
 	}
-	//start timer
+	// start timer
 	wt := time.NewTimer(time.Duration(walltime) * time.Hour)
 
-	//email setup
+	// email setup
 	sender := os.Getenv("SMTP_SENDER")
 	password := os.Getenv("SMTP_PASSWORD")
 
@@ -129,11 +128,11 @@ func action1(ctx context.Context, cmd *cli.Command) error {
 	msg.SetBody("text/plain", fmt.Sprintf("%s\nBarker: your file %s has been created", stringTime, file))
 	d := mail.NewDialer("smtp.gmail.com", 587, sender, password)
 
-	//monitoring
+	// monitoring
 	var err2 error = os.ErrNotExist
 	var info os.FileInfo
 	tick := time.NewTicker(5 * time.Second)
-	var errCounter int //only warn 3 times for unexpected errors
+	var errCounter int // only warn 3 times for unexpected errors
 LOOP:
 	for {
 		select {

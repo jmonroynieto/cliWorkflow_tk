@@ -16,13 +16,12 @@ var (
 )
 
 func main() {
-
 	app := &cli.Command{
 		Name:     "fickeFinger",
 		Usage:    "custon random value generator",
 		Flags:    appFlags,
 		Commands: appCmds,
-		Version:  fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+		Version:  fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 	}
 
 	app.Run(context.Background(), os.Args)
@@ -38,7 +37,6 @@ var appFlags []cli.Flag = []cli.Flag{
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 			return nil
-
 		},
 	},
 }
@@ -53,7 +51,7 @@ var appCmds []*cli.Command = []*cli.Command{
 	{
 		Name:   "id",
 		Usage:  "generate random id",
-		Action: generateID,
+		Action: GenerateID,
 		Flags:  idFlags,
 	},
 }

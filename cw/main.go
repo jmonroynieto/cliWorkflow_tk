@@ -1,7 +1,7 @@
 package main
 
-//cw is a program designed to add bookmarks to the terminal for quick access to files and folders.
-//cw is written in go and implements cw set and cw unset for any alphanumetic 1 character key. The bookmarks are saved in a file called ~/.cw_bookmarks.sh which is a bash file with the cw command definitions as aliases such that one can use cw1 to cd to the command saved in the register 1 and cwb to cd to de bookmark in the register b. The aliases use cx as the cd command; this command is an implentation of 'cd $new; clear; ls'.
+// cw is a program designed to add bookmarks to the terminal for quick access to files and folders.
+// cw is written in go and implements cw set and cw unset for any alphanumetic 1 character key. The bookmarks are saved in a file called ~/.cw_bookmarks.sh which is a bash file with the cw command definitions as aliases such that one can use cw1 to cd to the command saved in the register 1 and cwb to cd to de bookmark in the register b. The aliases use cx as the cd command; this command is an implentation of 'cd $new; clear; ls'.
 
 import (
 	"bufio"
@@ -28,9 +28,10 @@ var app = cli.Command{
 	Name:                          "cw",
 	Description:                   "cw is a program designed to add bookmarks to the terminal for quick access to files and folders",
 	Commands:                      appCmds,
-	Version:                       fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+	Version:                       fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 	CustomRootCommandHelpTemplate: printHelp,
 }
+
 var appCmds = []*cli.Command{
 	{
 		Name:               "set",
@@ -73,7 +74,7 @@ func set(ctx context.Context, cmd *cli.Command) error {
 	newPath := args[1]
 	aliases := readAliases()
 	bookmarks, keys := extractBM(aliases)
-	//check if the key is already in use
+	// check if the key is already in use
 	if _, ok := bookmarks[key]; ok {
 		form := huh.NewForm(
 			huh.NewGroup(
@@ -149,10 +150,7 @@ COMMANDS:
 GLOBAL OPTIONS:
    {{range .VisibleFlags}}{{.}}
    {{end}}{{end}}{{if .Version}}
-VERSION:
-   {{.}}
-   {{end}}
-
+VERSION: {{.Version}}{{end}}
 `
 
 var subcmdHelp string = `NAME: {{.Name}} - {{.Usage}}
@@ -174,7 +172,7 @@ func extractBM(lines []string) (map[string]string, []string) {
 		roughPath = strings.ReplaceAll(roughPath, "'", "")
 		key := strings.ReplaceAll(roughKey, "alias cw", "")
 		path := strings.TrimSpace(roughPath)
-		//add to map
+		// add to map
 		bookmarks[key] = path
 		keys = append(keys, key)
 
@@ -183,24 +181,24 @@ func extractBM(lines []string) (map[string]string, []string) {
 }
 
 func openFile(flag int) *os.File {
-	//get the home directory
+	// get the home directory
 	home, err := os.UserHomeDir()
 	errorutils.ExitOnFail(err,
 		errorutils.WithLineRef("XXKbyHh7KBI"),
 		errorutils.WithMsg("Error getting home directory"),
 	)
-	//get the path to the file
+	// get the path to the file
 	pathToFile := filepath.Join(home, ".cw_bookmarks.sh")
 
-	//open the file
-	file, err := os.OpenFile(pathToFile, flag, 0644)
+	// open the file
+	file, err := os.OpenFile(pathToFile, flag, 0o644)
 	errorutils.ExitOnFail(err)
 	return file
 }
 
 func readAliases() []string {
 	file := openFile(os.O_RDONLY)
-	//read the file
+	// read the file
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	var lines []string
@@ -211,7 +209,7 @@ func readAliases() []string {
 	// aliases capture
 	aliases := make([]string, 0)
 	for _, line := range lines {
-		//if the line does not contain the key, add it to the new lines
+		// if the line does not contain the key, add it to the new lines
 		if strings.HasPrefix(line, "alias") {
 			aliases = append(aliases, line)
 		}

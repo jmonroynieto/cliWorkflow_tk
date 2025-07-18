@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	//output
+	// output
 	origStdout       *os.File
 	stdoutBuffer     []string
 	lastDisplayLines int
 	pipeReader       *os.File
 	pipeWriter       *os.File
-	//concurrenty
+	// concurrenty
 	terminationSignal chan struct{}
 	wg                sync.WaitGroup
 	bufferMutex       sync.Mutex
@@ -32,12 +32,12 @@ func SetupCapture() (*bool, error) {
 	running := true
 	var err error
 	origStdout = os.Stdout
-	//set to devnull during debugging
+	// set to devnull during debugging
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		origStdout, _ = os.OpenFile(os.DevNull, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	}
 
-	{ //handle interrupt
+	{ // handle interrupt
 		interrupted := make(chan os.Signal, 1)
 		signal.Notify(interrupted, syscall.SIGINT)
 		go func() {
@@ -58,9 +58,9 @@ func SetupCapture() (*bool, error) {
 	if err != nil {
 		return &running, err
 	}
-	os.Stdout = pipeWriter //output swap
+	os.Stdout = pipeWriter // output swap
 
-	//workers
+	// workers
 	wg.Add(1)
 	go captureOutput(lineChan)
 	go asyncUpdateBuffer(lineChan)
@@ -68,10 +68,10 @@ func SetupCapture() (*bool, error) {
 }
 
 func FinishCapture() {
-	//fmt.Println(ὄλεθροςπαντός) //last ditch effort to close the output
+	// fmt.Println(ὄλεθροςπαντός) //last ditch effort to close the output
 	pipeWriter.Close()
 	close(terminationSignal)
-	wg.Wait() //blocks main goroutine
+	wg.Wait() // blocks main goroutine
 }
 
 //
@@ -151,7 +151,6 @@ func clearDisplayWindow() {
 }
 
 func updateBuffer(line string) (changed bool) {
-
 	if line == "" {
 		return false
 	}
@@ -176,7 +175,7 @@ func updateBuffer(line string) (changed bool) {
 func displayBuffer() {
 	header := "\033[1;32m--- " + ὄλεθροςπαντός + " ---\033[0m"
 	footer := "\033[1;32m--------------- ὄλεθρος παντός ---------------\033[0m"
-	clearLine := "\033[2K" //Clear the entire line
+	clearLine := "\033[2K" // Clear the entire line
 
 	maxWidth, _, err := terminal.GetSize(int(origStdout.Fd()))
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {

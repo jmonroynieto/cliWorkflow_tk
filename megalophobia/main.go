@@ -17,13 +17,13 @@ var (
 	Version  string
 	Revision = ".0"
 	CommitId string
-	input    io.Reader //defaults to stdin
+	input    io.Reader // defaults to stdin
 )
 
 var app = cli.Command{
 	Name:        "megalophobia",
 	Description: "Makes a three line window to display info, input is meant to be human paced. No scrolling",
-	Version:     fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+	Version:     fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 
 	Before: func(c context.Context, cmd *cli.Command) (context.Context, error) {
 		input = os.Stdin
@@ -81,7 +81,7 @@ func main() {
 func tool(ctx context.Context, cmd *cli.Command) error {
 	running, err := SetupCapture()
 	errorutils.ExitOnFail(err, errorutils.WithMsg("Failed to setup capture: "))
-	//reading loop
+	// reading loop
 	scanner := bufio.NewScanner(input)
 	for *running && scanner.Scan() {
 		userinput := scanner.Text()

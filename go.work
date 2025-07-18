@@ -1,10 +1,11 @@
-go 1.24.1
+go 1.24.4
 
 use (
 	./ansCRUBi
 	./ansible
 	./barker
 	./calshow
+	./cedula
 	./chaptor
 	./cw
 	./describeFiles
@@ -17,6 +18,7 @@ use (
 	./mdMake
 	./megalophobia
 	./quoteadder
+	./shFossils
 	./watchAdir
 	./xwin
 	./zustellen

@@ -10,8 +10,13 @@ import (
 	"time"
 )
 
-var color string
-var old string
+var (
+	Version  string
+	Revision = ".0"
+	CommitId string
+	color    string
+	old      string
+)
 
 var colors = []string{
 	"\033[31m",       // Red
@@ -38,8 +43,7 @@ var colors = []string{
 	"\033[38;5;183m", // lavender
 }
 
-var usage string = `
-Usage: dripC [-h | --help] [(-|--)EACHLN | (-|--)TIMED |]
+var usage string = `Usage: dripC [-h | --help] [(-|--)EACHLN | (-|--)TIMED |]
 	Modes can be styled as flags or arguments:
 	TIMED: change color after a one-second delay in the input stream.
 	EACHLN: change color for each line in the input stream.
@@ -47,13 +51,17 @@ skipping the mode argument would color all input a single color.`
 
 func main() {
 	if len(os.Args) > 3 || (len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help")) {
+		fmt.Printf("dripC v%s%s (%s)\n", Version, Revision, CommitId)
 		fmt.Println(usage)
+		return
+	} else if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+		fmt.Printf("dripC version %s%s (%s)\n", Version, Revision, CommitId)
 		return
 	}
 	changeColor()
-	//logrus.Debug("os.Args:", os.Args)
+	// logrus.Debug("os.Args:", os.Args)
 	if len(os.Args) == 2 {
-		//logrus.Debug("mode specified")
+		// logrus.Debug("mode specified")
 		switch prep(os.Args[1]) {
 		case "EACHLN":
 			colorEach()
@@ -65,7 +73,7 @@ func main() {
 			return
 		}
 	} else {
-		//logrus.Debug("no mode specified, coloringblock")
+		// logrus.Debug("no mode specified, coloringblock")
 		colorAll()
 	}
 	// reset terminal color
@@ -100,7 +108,7 @@ func colorAll() {
 func colorEach() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		//print scanner text to stdout with color
+		// print scanner text to stdout with color
 		fmt.Printf("%s\n", scanner.Text())
 		changeColor()
 	}
@@ -110,7 +118,7 @@ func colorEach() {
 }
 
 func timedChange() {
-	//fmt.Println("starting timed change")
+	// fmt.Println("starting timed change")
 	timedelay := 1500 * time.Millisecond
 	input_ch := make(chan string, 5)
 	timer := time.NewTimer(timedelay)
@@ -118,7 +126,7 @@ func timedChange() {
 	go func() {
 		for scanner.Scan() {
 			input_ch <- scanner.Text()
-			//logrus.Debug("input received")
+			// logrus.Debug("input received")
 		}
 		close(input_ch)
 	}()
@@ -126,10 +134,10 @@ looper:
 	for {
 		select {
 		case <-timer.C:
-			//logrus.Debug("timer ended, changing color")
+			// logrus.Debug("timer ended, changing color")
 			changeColor()
 		case input, ok := <-input_ch:
-			//logrus.Debug("input received, timer reset")
+			// logrus.Debug("input received, timer reset")
 			if !ok {
 				break looper
 			}
@@ -137,7 +145,7 @@ looper:
 			timer.Reset(timedelay)
 		}
 	}
-	//logrus.Debug("exiting looper")
+	// logrus.Debug("exiting looper")
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "reading standard input failed:", err)
 	}

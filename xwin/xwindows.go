@@ -86,10 +86,9 @@ func listOpenWindows(ctx context.Context, cmd *cli.Command) error {
 
 func main() {
 	err := (&cli.Command{
-
 		Name:    "xwindows",
 		Usage:   "list open windows",
-		Version: fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+		Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 		Action:  listOpenWindows,
 	}).Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)

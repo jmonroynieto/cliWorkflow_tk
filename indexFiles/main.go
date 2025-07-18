@@ -27,7 +27,7 @@ func main() {
 		Name:    "indexFiles",
 		Usage:   "recursive, parallel sha1sum for files and symlinks in directory",
 		Flags:   appFlags,
-		Version: fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+		Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			run(cmd.String("examine"), cmd.String("output"))
 			return nil
@@ -48,12 +48,11 @@ var appFlags []cli.Flag = []cli.Flag{
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 			return nil
-
 		},
 	},
 	&cli.StringFlag{
 		Name:     "examine",
-		Aliases:  []string{"e", "i"}, //input
+		Aliases:  []string{"e", "i"}, // input
 		Usage:    "`DIR` to examine",
 		Required: true,
 	},
@@ -73,7 +72,7 @@ var appFlags []cli.Flag = []cli.Flag{
 			return e
 		},
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Name:        "workers",
 		Aliases:     []string{"w"},
 		Destination: &workersNum,

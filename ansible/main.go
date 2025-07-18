@@ -20,7 +20,7 @@ import (
 var (
 	CommitId   string
 	Version    string
-	Revision   = ".2"
+	Revision   = ".0"
 	errTIMEOUT = errors.New("timeout")
 )
 
@@ -95,7 +95,7 @@ func superluminal(ctx context.Context, cmd *cli.Command) error {
 
 	logrus.SetOutput(file)
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	entry.Time = t //time of call not depending on mutex aquisition
+	entry.Time = t // time of call not depending on mutex aquisition
 
 	var levelFunc func(args ...interface{})
 	switch cmd.String("level") {
@@ -113,11 +113,11 @@ func superluminal(ctx context.Context, cmd *cli.Command) error {
 
 	slog.Debug("program parameters set, moving on to processing input")
 	msg := strings.Join(cmd.Args().Slice(), " ")
-	//remove surrounding quotes from msg
+	// remove surrounding quotes from msg
 	if len(msg) > 1 && msg[0] == '"' && msg[len(msg)-1] == '"' {
 		msg = msg[1 : len(msg)-1]
 	}
-	//Default scanner from args
+	// Default scanner from args
 	readers := []io.Reader{strings.NewReader(msg + "\n")}
 
 	if fi, _ := os.Stdin.Stat(); (fi.Mode() & os.ModeCharDevice) == 0 {
@@ -142,7 +142,6 @@ func superluminal(ctx context.Context, cmd *cli.Command) error {
 		}
 		slog.Debug("finished scanning input")
 		close(lines_ch)
-
 	}()
 	lineCH_open := true
 	firstIsReady_tk := time.NewTicker(1111 * time.Millisecond)
@@ -181,7 +180,7 @@ lineRW:
 }
 
 func lockFile(file *os.File) error {
-	//if we wait for more than 3 minutes, we give up
+	// if we wait for more than 3 minutes, we give up
 	ticker := time.NewTicker(3 * time.Minute)
 	defer ticker.Stop()
 	done := make(chan error)

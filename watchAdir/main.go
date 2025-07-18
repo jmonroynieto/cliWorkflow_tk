@@ -15,7 +15,7 @@ import (
 
 var (
 	Version       string
-	Revision      = ".1"
+	Revision      = ".0"
 	CommitId      string
 	requestedTime time.Duration
 )
@@ -24,7 +24,7 @@ var app = cli.Command{
 	Name:    "watchAdir",
 	Usage:   "Notifies when a directory is changed with printouts",
 	Flags:   appFlags,
-	Version: fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+	Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
 	Action:  vidi,
 }
 
@@ -88,7 +88,7 @@ func vidi(ctx context.Context, cmd *cli.Command) error {
 			for event := range watcher.Events {
 				switch event.Op {
 				case fsnotify.Create:
-					//check if it is a directory
+					// check if it is a directory
 					if info, err := os.Stat(event.Name); info != nil && info.IsDir() {
 						fmt.Println("A new directory named", event.Name, "was created on", time.Now().Format("January 2, 2006 at 15:04:05"))
 						if d := cmd.Int("depth"); d > 0 || d == -1 {
@@ -116,7 +116,6 @@ func vidi(ctx context.Context, cmd *cli.Command) error {
 				default:
 					continue
 				}
-
 			}
 		}
 	}()
@@ -130,7 +129,7 @@ func getPathsToWatch(path string, depth int) ([]string, error) {
 	if depth == 0 {
 		return []string{path}, nil
 	}
-	paths = append(paths, path) //includes the current path
+	paths = append(paths, path) // includes the current path
 	entries, err := os.ReadDir(path)
 	logrus.Debugf("entries in %s: %#v", path, entries)
 	if err != nil {
