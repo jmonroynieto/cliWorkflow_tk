@@ -1,6 +1,6 @@
 GIT_TAG := $(shell git rev-parse --short HEAD)
 build_dir := build/
-TOOLS := ansCRUBi ansible barker calshow cedula chaptor cw describeFiles dripC fickleFinger filterMyCal indexFiles kompti kwiqExt mdMake megalophobia quoteadder shFossils watchAdir xwin zustellen
+TOOLS := ansCRUBi ansible barker calshow cedula chaptor cw describeFiles dripC fickleFinger filterMyCal indexFiles kompti kwiqExt lineExplorer mdMake megalophobia quoteadder shFossils watchAdir xwin zustellen
 install_dir := /home/pollo/Local/bin/
 
 .PHONY: build
@@ -19,6 +19,6 @@ install:
 		@mkdir -p $(install_dir)
 		@for tool in $(TOOLS) ; do \
 			echo "--- Installing $$tool ---" ;\
-			install -p $(build_dir)$$tool $(install_dir)/$$tool && rm $(build_dir)$$tool || echo "=== Failed installing $$tool ===" \
+			install -p $(build_dir)$$tool $(install_dir)/$$tool && rm $(build_dir)$$tool || echo "=== Failed installing $$tool ===" ; \
 		done
 		@rm -d ${build_dir}
