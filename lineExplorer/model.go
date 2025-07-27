@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
 	"math/rand/v2"
 	"os"
 	"strconv"
@@ -20,14 +18,8 @@ import (
 func New(file *os.File, idx index) Model {
 	h := help.New()
 	h.ShortSeparator = " \x1b[94m|\x1b[0m "
-	b := make([]byte, 0, 1024^4)
-	logBuffer := bytes.NewBuffer(b)
-	for i := range int(logrus.GetLevel())+1 {
-		errorutils.ChangeWriter(i-1, logBuffer)
-	}
-	errorutils.ChangeWriter(, logBuffer)
+
 	return Model{
-		logBuffer:    logBuffer,
 		file:         file,
 		idx:          idx,
 		shouldDelete: make(map[uint32]struct{}),
@@ -95,17 +87,19 @@ func (m Model) View() string {
 	if m.currentLine == 0 {
 		return "loading..."
 	}
-	x := m.buf.setWindow(int(m.buf.rltvBufSelection) - 2)
-	if x.rltvBufSelection == -100 {
+	x, err := m.buf.setWindow(int(m.buf.rltvBufSelection) - 2)
+	if err != nil {
 		return "error..."
 	}
-	return title + x.String() + "\n\n" + m.help.View(m.keymap)
+	return title(m.currentLine) + x.String() + "\n\n" + m.help.View(m.keymap)
 }
 
-var title = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("205")).AlignHorizontal(lipgloss.Center).Render("pydpll") + "\n" +
-	lipgloss.NewStyle().Foreground(lipgloss.Color("#CACACA")).AlignHorizontal(lipgloss.Center).Render("—————\n")
-
+func title(line uint32) string {
+	x1 := lipgloss.NewStyle().Foreground(lipgloss.Color("205")).AlignHorizontal(lipgloss.NoTabConversion).Render("selected: "+strconv.Itoa(int(line))) + "\n"
+	x2 := lipgloss.NewStyle().Foreground(lipgloss.Color("#CACACA")).Render("—————") + "\n"
+	x := x1 + x2
+	return x
+}
 func (m Model) swapLine() (Model, tea.Cmd) {
 	m.currentLine = rand.Uint32N(uint32(len(m.idx)))
 	var (
@@ -132,7 +126,7 @@ func (m Model) swapLine() (Model, tea.Cmd) {
 
 	// load window for the first time
 	m.buf.AfterLines = [2]string{m.buf.completeBuf[relativePos+1], m.buf.completeBuf[relativePos+2]}
-	m.buf.beforeLines = [2]string{m.buf.completeBuf[relativePos-2], m.buf.completeBuf[relativePos-1]}
+	m.buf.BeforeLines = [2]string{m.buf.completeBuf[relativePos-2], m.buf.completeBuf[relativePos-1]}
 	m.buf.lineText = m.buf.completeBuf[relativePos]
 	m.buf.rltvBufSelection = int(relativePos)
 	m.buf.delIdx = make([]bool, len(m.buf.completeBuf))
@@ -144,26 +138,44 @@ type lines struct {
 	selectedItemStyle   lipgloss.Style
 	completeBuf         []string
 	rltvBufSelection    int // item to highlight and work on
-	beforeLines         [2]string
+	BeforeLines         [2]string
 	lineText            string
 	AfterLines          [2]string
 	delIdx              []bool
 }
 
 func (l lines) String() string {
+	var B string
+	var A string
+
+	for _, v := range l.BeforeLines {
+		if v == "" {
+			continue
+		}
+		B += v + "\n"
+	}
+	for _, v := range l.AfterLines {
+		if v == "" {
+			continue
+		}
+		A += v + "\n"
+	}
+	A = strings.TrimSuffix(A, "\n")
+	B = strings.TrimSuffix(B, "\n")
+
 	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		l.unselectedItemStyle.Render(strings.Join(l.beforeLines[:], "\n")),
+		lipgloss.NoTabConversion,
+		l.unselectedItemStyle.Render(B),
 		l.selectedItemStyle.Render(l.lineText),
-		l.unselectedItemStyle.Render(strings.Join(l.AfterLines[:], "\n")),
+		l.unselectedItemStyle.Render(A),
 	)
 }
 
 // setWindow changes the loaded lines but not the buffer
 //
 // startBufInx is the buffer index at which we want to start
-func (l lines) setWindow(startBufInx int) lines {
-	maxIndex := len(l.completeBuf)
+func (l lines) setWindow(startBufInx int) (lines, error) {
+	maxIndex := len(l.completeBuf) - 1
 	if maxIndex < 5 {
 		startBufInx = 0
 	} else {
@@ -175,50 +187,48 @@ func (l lines) setWindow(startBufInx int) lines {
 		logrus.Fatal(errorutils.NewReport("selected index out of bounds. Picked: "+strconv.Itoa(selected)+" buffer length: "+strconv.Itoa(maxIndex)+" startBufInx: "+strconv.Itoa(startBufInx), "08MSWPlLllG"))
 	}
 	relPtr := selected - startBufInx
-	if max(startBufInx+relPtr+3, min(startBufInx+5, len(l.completeBuf))) > maxIndex {
-		//avoid out of bounds
-		logrus.Warn("out of bounds, brace for impact")
-		fmt.Printf("Options: max(%d, min(%d, %d))", startBufInx+relPtr+3, startBufInx+5, len(l.completeBuf))
-	}
 
+	var returnable error
 	// copture values during a panic
-	notifyError := lines{}
 	defer func() {
 		if err := recover(); err != nil {
 			logrus.Info("recovered from panic: ", err)
-			logrus.Infof("[start: %d, bufSelection: %d, relPtr: %d, maxIndex: %d ]", startBufInx, l.rltvBufSelection, relPtr, maxIndex)
-			logrus.Infof("bounds of after[%d:%d]", startBufInx+relPtr+1, max(startBufInx+relPtr+3, min(startBufInx+5, len(l.completeBuf))))
-			notifyError = lines{rltvBufSelection: -100}
+			logrus.Infof("[start: %d, bufSelection: %d, relPtr: %d, maxIndex: %d ]\n", startBufInx, l.rltvBufSelection, relPtr, maxIndex)
+			logrus.Infof("bounds of after[%d:%d]\n", min(startBufInx+relPtr+2, len(l.completeBuf)), max(startBufInx+relPtr+3, min(startBufInx+5, len(l.completeBuf))))
+			returnable = errorutils.NewReport("recovered from panic: "+err.(error).Error(), "7NEKdcE8loi")
 		}
 	}()
-	if notifyError.rltvBufSelection == -100 {
-		return notifyError
-	}
-	copy(l.beforeLines[:], l.completeBuf[startBufInx:startBufInx+relPtr])
+	l.BeforeLines[0] = ""
+	l.BeforeLines[1] = ""
+	l.AfterLines[0] = ""
+	l.AfterLines[1] = ""
+	copy(l.BeforeLines[:], l.completeBuf[startBufInx:startBufInx+relPtr])
 	l.lineText = l.completeBuf[startBufInx+relPtr]
-	copy(l.AfterLines[:], l.completeBuf[startBufInx+relPtr+1:max(startBufInx+relPtr+3, min(startBufInx+5, len(l.completeBuf)-1))])
-	return l
+	copy(l.AfterLines[:], l.completeBuf[min(startBufInx+relPtr+1, len(l.completeBuf)):min(startBufInx+5, len(l.completeBuf))])
+	return l, returnable
 }
 
 func (l lines) down() (lines, tea.Cmd) {
+	var err error
 	l.rltvBufSelection++
 	if l.rltvBufSelection >= len(l.completeBuf) {
 		l.rltvBufSelection = len(l.completeBuf) - 1
 	}
-	l = l.setWindow(l.rltvBufSelection - 2)
-	if l.rltvBufSelection == -100 {
+	l, err = l.setWindow(l.rltvBufSelection - 2)
+	if err != nil {
 		return l, tea.Quit
 	}
 	return l, nil
 }
 
 func (l lines) up() (lines, tea.Cmd) {
+	var err error
 	l.rltvBufSelection--
 	if l.rltvBufSelection < 0 {
 		l.rltvBufSelection = 0
 	}
-	x := l.setWindow(l.rltvBufSelection - 2)
-	if x.rltvBufSelection == -100 {
+	l, err = l.setWindow(l.rltvBufSelection - 2)
+	if err != nil {
 		return l, tea.Quit
 	}
 	return l, nil
