@@ -65,7 +65,6 @@ func readAndShow(ctx context.Context, cmd *cli.Command) error {
 			return err
 		}
 		//once it is over, the file is overwritten without the lines indicated by the user
-		fmt.Printf("%s", changes.(Model).logBuffer.String())
 		if logrus.IsLevelEnabled(logrus.DebugLevel) { //no changes
 			logrus.Debugf("changes: %v", changes.(Model).shouldDelete)
 			return nil
