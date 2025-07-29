@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -26,26 +27,28 @@ func New(file *os.File, idx index) Model {
 		},
 		help:            h,
 		shouldOverwrite: true, //default assumption
-		askingForInput:  false,
+		titleStyle:      lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#AC3931", Dark: "#DBFE87"}).Background(lipgloss.AdaptiveColor{Light: "#D9B7E1", Dark: "#D9B7E1"}),
 	}
 }
 
 type Model struct {
-	currentLine     uint32
-	file            *os.File
-	idx             index
-	shouldDelete    map[uint32]struct{}
-	buf             lines //max renders 2 + 1 + 2 but keeps 30 in memory
 	keymap          keymap
 	help            help.Model
+	file            *os.File
+	idx             index
+	currentLine     uint32
+	buf             lines //max renders 2 + 1 + 2 but keeps 30 in memory
+	shouldDelete    map[uint32]struct{}
 	shouldOverwrite bool
 	askingForInput  bool
+	titleStyle      lipgloss.Style
 }
 
 func (m Model) Init() tea.Cmd { return func() tea.Msg { return shuffleMsg{} } }
 
 type shuffleMsg struct{}
 type closeMsg struct{ err error }
+type noopMsg struct{} //do nothing
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -53,20 +56,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case shuffleMsg:
 		return m.shuffleAndSetLines()
-	case closeMsg:
-		m.buf.reset()
+	case noopMsg:
+		time.Sleep(100 * time.Millisecond)
 		return m, nil
+	case closeMsg:
+		m.buf.completeBuf = make([]string, 0)
+		m.buf.bufSelectIndex = 0
+		return m, tea.Sequence(nil, func() tea.Msg { return noopMsg{} }, tea.Quit)
 	case tea.KeyMsg:
 		km := m.keymap
 		errCMD := tea.Cmd(nil)
 		switch {
-		case m.askingForInput:
-			switch msg.String() {
-			case "y":
-				m.shouldOverwrite = true
-			case "n":
-				m.shouldOverwrite = false
-			}
 		case key.Matches(msg, km.Down):
 			m.buf, errCMD = m.buf.down()
 			return m, errCMD
@@ -87,10 +87,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg { return shuffleMsg{} }
 		case key.Matches(msg, km.Abort):
 			m.shouldOverwrite = false
-			if msg.String() == "ctrl+c" {
-				return New(nil, nil), tea.Quit
-			}
-			return New(nil, nil), func() tea.Msg { return closeMsg{} }
+
+			return m, func() tea.Msg { return closeMsg{} }
 		case key.Matches(msg, km.Submit):
 			return m, func() tea.Msg { return closeMsg{} }
 		default:
@@ -103,12 +101,9 @@ func (m Model) View() string {
 	if len(m.buf.completeBuf) == 0 {
 		return "loading..."
 	}
-	if m.askingForInput {
-		return "Original file changed while selecting lines to delete, overwrite? (y/n)"
-	}
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		title(m.currentLine),
+		title(m.currentLine, &(m.titleStyle)),
 		m.buf.String(),
 		"",
 		m.help.View(m.keymap),

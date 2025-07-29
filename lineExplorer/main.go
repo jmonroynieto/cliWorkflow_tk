@@ -54,12 +54,12 @@ func readAndShow(ctx context.Context, cmd *cli.Command) error {
 		//TODO: think about piping in data
 	}
 	for _, arg := range args {
-		x := expandtilde(arg)
-		tmp, srcSHA := mirrorFile(x)
+		ogFilepath := expandtilde(arg)
+		tmp, srcSHA := mirrorFile(ogFilepath)
 		idx := indexLines(tmp)
 		model := New(tmp, idx)
 		//displays a tui using bubbletea with a random line and the lines sorrounding it
-		// The user has several options: they can reshuffle lines, navigate through the file to identify and mark lines for potential deletion, delete the current line, or select and delete multiple lines. These actions can help manage repeated or slightly modified lines efficiently.
+		// The user has several options: they can reshuffle lines, navigate through the vecity of lines to identify and mark lines for potential deletion. She may select and delete multiple lines. Reshuffling  keeps a list of deleted lines that will be applied to the file once the user submits. If the user aborts, no changes are applied.
 		changes, err := tea.NewProgram(model).Run()
 		if err != nil {
 			return err
@@ -69,7 +69,7 @@ func readAndShow(ctx context.Context, cmd *cli.Command) error {
 			logrus.Debugf("changes: %v", changes.(Model).shouldDelete)
 			return nil
 		}
-		err = applyChanges(tmp, x, changes.(Model).shouldDelete, srcSHA)
+		err = applyChanges(tmp, ogFilepath, changes.(Model).shouldDelete, srcSHA)
 		if err != nil {
 			return err
 		}
@@ -131,10 +131,10 @@ func (i index) readlines(file *os.File, startLine uint32, endLine uint32) ([]str
 }
 
 func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{}, srcSHA string) error {
-	t, err := os.Open(target)
+	ogFile, err := os.Open(target)
 	errorutils.ExitOnFail(err)
 	{ // check if target file has been modified
-		r := bufio.NewReader(t)
+		r := bufio.NewReader(ogFile)
 		hash := md5.New()
 		buf := make([]byte, 1024)
 		for {
@@ -146,20 +146,25 @@ func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{},
 				break
 			}
 			hash.Write(buf[:n])
+			if err == io.EOF {
+				break
+			}
 		}
 		tSHA := fmt.Sprintf("%x", hash.Sum(nil))
 		if tSHA != srcSHA {
-			return errorutils.NewReport("ERROR: target file has been modified", "tFMpyFIa4FH")
+			validateOverwrite.Run()
+			if !userOverwrite {
+				return errorutils.NewReport("ERROR: target file has been modified, your changes were saved to"+tmp.Name(), "tFMpyFIa4FH")
+			}
 		}
 	}
 
 	//overwrite
 	_, err = tmp.Seek(0, io.SeekStart)
 	errorutils.ExitOnFail(err)
-	//truncate target
-	err = t.Truncate(0)
+	err = ogFile.Truncate(0)
 	errorutils.ExitOnFail(err)
-	w := bufio.NewWriter(t)
+	w := bufio.NewWriter(ogFile)
 	scanner := bufio.NewScanner(tmp)
 	lineCounter := uint32(1)
 	for scanner.Scan() {
@@ -173,5 +178,9 @@ func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{},
 	errorutils.ExitOnFail(scanner.Err())
 	err = w.Flush()
 	errorutils.ExitOnFail(err)
+	err = os.Remove(tmp.Name())
+	errorutils.ExitOnFail(err)
 	return nil
 }
+
+var userOverwrite bool

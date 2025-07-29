@@ -136,7 +136,7 @@ func (l lines) setWindow(windowStart int) (lines, error) {
 	relPtr := selected - windowStart
 
 	var returnable error
-	// copture values during a panic
+	// capture values during a panic
 	defer func() {
 		if err := recover(); err != nil {
 			logrus.Info("recovered from panic: ", err)
@@ -159,12 +159,6 @@ func (l lines) setWindow(windowStart int) (lines, error) {
 	copy(l.AfterLines[:], l.completeBuf[afterlinesStart:windowEnd])
 	l.gutterLines = l.updateGutter()
 	return l, returnable
-}
-
-func (l lines) reset() lines {
-	l.bufSelectIndex = 0
-	l.completeBuf = make([]string, 0)
-	return l
 }
 
 func (l lines) selectedFileIndex() int {
@@ -198,6 +192,9 @@ func (l lines) up() (lines, tea.Cmd) {
 
 func (l lines) updateGutter() []string {
 	maxIndex := len(l.completeBuf) - 1
+	if maxIndex < 0 {
+		return []string{}
+	}
 	windowStart := max(l.bufSelectIndex-2, 0)
 	if maxIndex < 5 || windowStart < 0 {
 		windowStart = 0

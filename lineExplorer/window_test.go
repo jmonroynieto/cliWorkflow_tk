@@ -115,6 +115,7 @@ func TestSetWindow(t *testing.T) {
 				bufSelectIndex: tc.bufSelectionIndex,
 				BeforeLines:    make([]string, 2, 5),
 				AfterLines:     make([]string, 2, 5),
+				delIdx:         make([]bool, len(tc.initialBuf)),
 			}
 
 			var err error
