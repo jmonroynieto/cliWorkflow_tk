@@ -5,10 +5,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"sync"
+	"syscall"
 	"unicode/utf8"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,6 +27,7 @@ var (
 )
 
 func main() {
+	defer retainFunctionalTTY()
 	err := app.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)
 }
@@ -77,12 +81,12 @@ func readAndShow(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-type index []uint32 // index[i] Reads as "the newline at the end line i and therefore, len(index) is a line count. First element is always 0
+type index []uint32 // index[i] Reads as "the offset to the newline at the end of the ith line  and therefore, len(index)-1 is a line count since the first element is always 0.
 
 func indexLines(r io.Reader) index {
 	var idx index = make([]uint32, 0, 32768) // 128kb
 	var pos uint32
-	idx = append(idx, pos) // only index point at the beginning of a line.
+	idx = append(idx, pos) //first element is always 0
 	var x sync.Once
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -94,12 +98,10 @@ func indexLines(r io.Reader) index {
 			}
 		})
 		if !shouldContinueOn {
-			break //skip
+			break //skip file
 		}
-		pos += uint32(len(scanner.Bytes()))
+		pos += uint32(len(scanner.Bytes())) + 1
 		idx = append(idx, pos)
-		pos += 1
-
 	}
 	errorutils.ExitOnFail(scanner.Err())
 	result := make(index, len(idx))
@@ -109,20 +111,18 @@ func indexLines(r io.Reader) index {
 
 // startLine and endLine are 1 based
 func (i index) readlines(file *os.File, startLine uint32, endLine uint32) ([]string, error) {
-	if endLine > uint32(len(i)) {
+	if endLine > uint32(len(i))-1 {
 		logrus.Warn("endLine is out of range, setting to end of file")
 		endLine = uint32(len(i))
 	}
 	if startLine <= 0 || endLine <= 0 || startLine > endLine {
 		return nil, fmt.Errorf("invalid line range: startLine=%d, endLine=%d", startLine, endLine)
 	}
-	var newlineskip uint32 = 1
-	if startLine == 1 {
-		newlineskip = 0
+	buf := make([]byte, i[endLine]-(i[max(startLine-1, 0)]))
+	file.ReadAt(buf, int64(i[max(startLine-1, 0)]))
+	if buf[len(buf)-1] == '\x00' || buf[len(buf)-1] == '\n' { // handle final newline; either missing (aka POSIX malformed) or present and needs to be stripped due to split artifact
+		buf = buf[:len(buf)-1]
 	}
-	buf := make([]byte, i[endLine]-(i[startLine-1]+newlineskip))
-	file.ReadAt(buf, int64(i[startLine-1]+newlineskip))
-
 	result := make([]string, 0, endLine-startLine+1)
 	for _, line := range bytes.Split(buf, []byte("\n")) {
 		result = append(result, string(line))
@@ -131,9 +131,9 @@ func (i index) readlines(file *os.File, startLine uint32, endLine uint32) ([]str
 }
 
 func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{}, srcSHA string) error {
-	ogFile, err := os.Open(target)
-	errorutils.ExitOnFail(err)
 	{ // check if target file has been modified
+		ogFile, err := os.Open(target)
+		errorutils.ExitOnFail(err)
 		r := bufio.NewReader(ogFile)
 		hash := md5.New()
 		buf := make([]byte, 1024)
@@ -160,15 +160,15 @@ func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{},
 	}
 
 	//overwrite
-	_, err = tmp.Seek(0, io.SeekStart)
+	_, err := tmp.Seek(0, io.SeekStart)
 	errorutils.ExitOnFail(err)
-	err = ogFile.Truncate(0)
-	errorutils.ExitOnFail(err)
-	w := bufio.NewWriter(ogFile)
+	scratchpad, err := os.CreateTemp("", "lineExplorerDel*")
+	w := bufio.NewWriter(scratchpad)
 	scanner := bufio.NewScanner(tmp)
 	lineCounter := uint32(1)
 	for scanner.Scan() {
 		if _, ok := shouldDelete[lineCounter]; ok {
+			lineCounter++
 			continue
 		}
 		w.WriteString(scanner.Text())
@@ -180,7 +180,38 @@ func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{},
 	errorutils.ExitOnFail(err)
 	err = os.Remove(tmp.Name())
 	errorutils.ExitOnFail(err)
+	//preserve permissions
+	info, err := os.Stat(target)
+	errorutils.ExitOnFail(err)
+	err = os.Chmod(scratchpad.Name(), info.Mode())
+	errorutils.ExitOnFail(err)
+	//rename scratchpad to target
+	err = os.Rename(scratchpad.Name(), target)
+	if err != nil {
+		//handle filesystem boundary errors and copy instead
+		if errors.Is(err, syscall.EXDEV) {
+			logrus.Warn("unable to rename scratchpad to target, copying instead")
+			src, err := os.Open(scratchpad.Name())
+			errorutils.ExitOnFail(err)
+			defer src.Close()
+			dst, err := os.Create(target)
+			errorutils.ExitOnFail(err)
+			defer dst.Close()
+			_, err = io.Copy(dst, src)
+			errorutils.ExitOnFail(err)
+			err = os.Remove(scratchpad.Name())
+			errorutils.ExitOnFail(err)
+		}
+	}
 	return nil
 }
 
 var userOverwrite bool
+
+func retainFunctionalTTY() {
+	if v := recover(); v != nil {
+		logrus.Warn(v)
+	}
+	_, err := exec.Command("stty", "sane").Output()
+	errorutils.WarnOnFail(err)
+}

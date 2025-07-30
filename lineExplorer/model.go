@@ -13,6 +13,7 @@ import (
 func New(file *os.File, idx index) Model {
 	h := help.New()
 	h.ShortSeparator = " \x1b[94m|\x1b[0m "
+	selectioncolor := lipgloss.AdaptiveColor{Light: "#000000", Dark: "#D6BA7C"}
 
 	return Model{
 		file:         file,
@@ -21,13 +22,14 @@ func New(file *os.File, idx index) Model {
 		keymap:       defaultKeymap(),
 		buf: lines{
 			unselectedItemStyle: lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#B69AA6", Dark: "#4F6367"}),
-			selectedItemStyle:   lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#000000", Dark: "#D6BA7C"}),
+			selectedItemStyle:   lipgloss.NewStyle().Foreground(selectioncolor),
 			AfterLines:          make([]string, 2),
 			BeforeLines:         make([]string, 2),
+			cursorcolor:         selectioncolor,
 		},
 		help:            h,
 		shouldOverwrite: true, //default assumption
-		titleStyle:      lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#AC3931", Dark: "#DBFE87"}).Background(lipgloss.AdaptiveColor{Light: "#D9B7E1", Dark: "#D9B7E1"}),
+		titleStyle:      lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#AC3931", Dark: "#DBFE87"}).Background(lipgloss.AdaptiveColor{Light: "#D9B7E1", Dark: "#8f12abff"}),
 	}
 }
 
@@ -40,7 +42,6 @@ type Model struct {
 	buf             lines //max renders 2 + 1 + 2 but keeps 30 in memory
 	shouldDelete    map[uint32]struct{}
 	shouldOverwrite bool
-	askingForInput  bool
 	titleStyle      lipgloss.Style
 }
 
@@ -52,11 +53,13 @@ type noopMsg struct{} //do nothing
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	//handle messages
 	case tea.WindowSizeMsg:
 		return m, nil
 	case shuffleMsg:
 		return m.shuffleAndSetLines()
 	case noopMsg:
+		// this enables the user to see the loading screen and the termination sequence to be able to delete only one line from the scrollback buffer/tea window.
 		time.Sleep(100 * time.Millisecond)
 		return m, nil
 	case closeMsg:
@@ -64,6 +67,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.buf.bufSelectIndex = 0
 		return m, tea.Sequence(nil, func() tea.Msg { return noopMsg{} }, tea.Quit)
 	case tea.KeyMsg:
+		// handle key messages
 		km := m.keymap
 		errCMD := tea.Cmd(nil)
 		switch {
@@ -92,6 +96,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, km.Submit):
 			return m, func() tea.Msg { return closeMsg{} }
 		default:
+			// noop
 		}
 	}
 	return m, nil
@@ -103,7 +108,7 @@ func (m Model) View() string {
 	}
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		title(m.currentLine, &(m.titleStyle)),
+		title(m.currentLine, &(m.titleStyle), len(m.idx)),
 		m.buf.String(),
 		"",
 		m.help.View(m.keymap),

@@ -13,15 +13,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func title(line uint32) string {
-	x1 := lipgloss.NewStyle().Foreground(lipgloss.Color("205")).AlignHorizontal(lipgloss.NoTabConversion).Render("selected: "+strconv.Itoa(int(line))) + "\n"
+func title(line uint32, titleStyle *lipgloss.Style, idxLen int) string {
+	x1 := (*titleStyle).AlignHorizontal(lipgloss.NoTabConversion).Render("line " + strconv.Itoa(int(line)) + " out of " + strconv.Itoa(idxLen-1) + " lines")
 	x2 := lipgloss.NewStyle().Foreground(lipgloss.Color("#CACACA")).Render("—————")
-	x := x1 + x2
+	x := x1 + "\n" + x2
 	return x
 }
 func (m Model) shuffleAndSetLines() (Model, tea.Cmd) {
-	m.currentLine = rand.Uint32N(uint32(len(m.idx))) //random 1-indexed line to sample (first element is always 0)
-	sL, eL, relativePos := bounds(m.currentLine, uint32(len(m.idx)))
+	m.currentLine = rand.Uint32N(uint32(len(m.idx) - 1))
+	if m.currentLine < 1 { // currentLine cannot be 0
+		m.currentLine = 1
+	}
+	sL, eL, relativePos := bounds(m.currentLine, uint32(len(m.idx)-1))
 	var err error
 	m.buf.completeBuf, err = m.idx.readlines(m.file, sL, eL)
 	errorutils.ExitOnFail(err)
@@ -45,10 +48,10 @@ func (m Model) shuffleAndSetLines() (Model, tea.Cmd) {
 // deals in line numbers 1-indexed
 func bounds(currentLine, linesInFile uint32) (startLine, endLine uint32, relativePosition int) {
 	relativePos := min(15, currentLine)
-	startLine = currentLine - relativePos
+	startLine = max(currentLine-relativePos, 1)
 	endLine = currentLine + 15
 
-	if currentLine > uint32(linesInFile-15) {
+	if linesInFile < 15 || currentLine > uint32(linesInFile-15) {
 		endLine = uint32(linesInFile)
 	}
 
@@ -67,34 +70,38 @@ type lines struct {
 	AfterLines          []string
 	delIdx              []bool
 	gutterLines         []string
+	cursorcolor         lipgloss.AdaptiveColor
 }
 
 func (l lines) String() string {
 	var B string
 	var A string
 
-	for _, v := range l.BeforeLines {
-		if v == "" || v == " " || v == "\n" {
-			continue
+	for i, v := range l.BeforeLines {
+		B += v
+		if i < len(l.BeforeLines)-1 {
+			B += "\n"
 		}
-		B += v + "\n"
 	}
-	for _, v := range l.AfterLines {
-		if v == "" {
-			continue
+	for i, v := range l.AfterLines {
+		A += v
+		if i < len(l.AfterLines)-1 {
+			A += "\n"
 		}
-		A += v + "\n"
+
 	}
 	var parts = make([]string, 0, 3)
 	for i, part := range []string{B, l.lineText, A} {
-		part = strings.TrimSuffix(part, "\n")
-		if part == "" {
-			continue
-		}
 		switch i {
 		case 0, 2:
+			if part == "" {
+				continue
+			}
 			part = l.unselectedItemStyle.Render(part)
 		case 1:
+			// if part == "" {
+			// 	part = " " // to draw underline cursor
+			// }
 			part = l.selectedItemStyle.Render(part)
 		}
 		parts = append(parts, part)
@@ -165,6 +172,10 @@ func (l lines) selectedFileIndex() int {
 	return l.ogLineFileinx - (l.ogLineBufIndex - l.bufSelectIndex)
 }
 func (l lines) down() (lines, tea.Cmd) {
+	if l.bufSelectIndex == len(l.completeBuf)-1 {
+		// no need to change window, already at bottom
+		return l, nil
+	}
 	var err error
 	l.bufSelectIndex++
 	if l.bufSelectIndex >= len(l.completeBuf) {
@@ -178,6 +189,10 @@ func (l lines) down() (lines, tea.Cmd) {
 }
 
 func (l lines) up() (lines, tea.Cmd) {
+	if l.bufSelectIndex == 0 {
+		// no need to change window, already at top
+		return l, nil
+	}
 	var err error
 	l.bufSelectIndex--
 	if l.bufSelectIndex < 0 {
@@ -191,6 +206,7 @@ func (l lines) up() (lines, tea.Cmd) {
 }
 
 func (l lines) updateGutter() []string {
+
 	maxIndex := len(l.completeBuf) - 1
 	if maxIndex < 0 {
 		return []string{}
@@ -202,11 +218,15 @@ func (l lines) updateGutter() []string {
 		windowStart = min(windowStart, maxIndex-4)
 	}
 	adjustment := 1
-	if l.lineText == "" {
-		adjustment = 0
-	}
 	windowEnd := min(windowStart+5, len(l.completeBuf))
 	l.gutterLines = make([]string, len(l.BeforeLines)+len(l.AfterLines)+adjustment)
+	defer func() {
+		//recover
+		if err := recover(); err != nil {
+			logrus.Info("recovered from panic: ", err)
+			logrus.Infof("[windowStart: %d, windowEnd: %d, maxIndex: %d]\n", windowStart, windowEnd, maxIndex)
+		}
+	}()
 	//using the indexes to set the gutter lines from l.delIdx
 	for i, v := range l.delIdx[windowStart:windowEnd] {
 		if v {
@@ -214,6 +234,13 @@ func (l lines) updateGutter() []string {
 		} else {
 			l.gutterLines[i] = " "
 		}
+		// if position is the same as l.bufSelectIndex underline for cursor
+		originalIndex := windowStart + i
+		border := lipgloss.HiddenBorder()
+		if originalIndex == l.bufSelectIndex {
+			border = lipgloss.NormalBorder()
+		}
+		l.gutterLines[i] = lipgloss.NewStyle().Border(border, false, true).BorderForeground(l.cursorcolor).Render(l.gutterLines[i])
 	}
 	return l.gutterLines
 }

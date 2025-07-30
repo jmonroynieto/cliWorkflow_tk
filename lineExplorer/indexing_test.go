@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"errors"
+	"io"
+	"os"
 	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestSetWindow(t *testing.T) {
@@ -149,4 +155,133 @@ var dutchNumbers = []string{
 	"zestien", "zeventien", "achttien", "negentien", "twintig",
 	"eenentwintig", "tweeëntwintig", "drieëntwintig", "vierentwintig", "vijfentwintig",
 	"zesentwintig", "zevenentwintig", "achtentwintig", "negenentwintig", "dertig",
+}
+
+func TestIndex(t *testing.T) {
+
+	type testCase struct {
+		name        string
+		input       string
+		expected    index
+		description string
+	}
+
+	var tests = []testCase{
+		{
+			name:        "Empty file",
+			input:       "",
+			expected:    index{0},
+			description: "Test that an empty file returns an index with a single element, 0",
+		},
+		{
+			name:        "Single line",
+			input:       "Hello\n",
+			expected:    index{0, 6},
+			description: "Test that a single line returns an index with two elements, 0 and the length of the line",
+		},
+		{
+			name:        "Multiple lines",
+			input:       "Hello\nWorld\n",
+			expected:    index{0, 6, 12},
+			description: "Test that multiple lines return an index with the correct lengths",
+		},
+		{
+			name:        "Lines with different lengths",
+			input:       "a\nHello\nWorld\n",
+			expected:    index{0, 2, 8, 14},
+			description: "Test that lines with different lengths return an index with the correct lengths",
+		},
+		{
+			name:        "No newline at the end",
+			input:       "Hello\nWorld",
+			expected:    index{0, 6, 12}, // the last byte is a fiction since there is no new line, the program will account for that.
+			description: "Test that a file without a newline at the end returns an index with the correct lengths",
+		},
+		{
+			name:        "Only newline characters",
+			input:       "\n\n\n",
+			expected:    index{0, 1, 2, 3},
+			description: "Test that a file with only newline characters returns an index with the correct lengths",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := indexLines(strings.NewReader(tc.input))
+			if !reflect.DeepEqual(got, tc.expected) {
+				t.Errorf("indexLines() = %v, want %v", got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestReadat(t *testing.T) {
+	// test no newline at the end, since the case for that in the index test reveals that the end point is hard coded to be one-off from the last character. Hoewever using the scanner seems to handle that correctly
+
+	//make dummy file where line numbers correspond to the content
+	contents := strings.NewReader(strings.Trim(strings.Join(dutchNumbers[1:], "\n"), " \n"))
+	file, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		logrus.Warn(err)
+		t.Fail()
+	}
+	defer os.Remove(file.Name())
+	defer file.Close()
+	_, err = io.Copy(file, contents)
+	if err != nil {
+		logrus.Warn(err)
+		t.Fail()
+	}
+	//seek file and contents to beginning
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		logrus.Warn(err)
+		t.Fail()
+	}
+	_, err = contents.Seek(0, 0)
+	if err != nil {
+		logrus.Warn(err)
+		t.Fail()
+	}
+	idx := indexLines(contents)
+	if err != nil {
+		logrus.Warn(err)
+		t.Fail()
+	}
+	// main event
+	lines, err := idx.readlines(file, 20, 30)
+	if err != nil {
+		logrus.Warn(err)
+		t.Fail()
+	}
+	expected := dutchNumbers[20:31]
+	if !reflect.DeepEqual(lines, expected) {
+		t.Errorf("Readat() = %v, want %v", lines, expected)
+	}
+}
+
+func TestDutchNumberScanner(t *testing.T) {
+	inputString := "nul\neen\ntwee\ndrie\nvier\nvijf\nzes\nzeven\nacht\nnegen\ntien\nelf\ntwaalf\ndertien\nveertien\nvijftien\nzestien\nzeventien\nachttien\nnegentien\ntwintig\neenentwintig\ntweeëntwintig\ndrieëntwintig\nvierentwintig\nvijfentwintig\nzesentwintig\nzevenentwintig\nachtentwintig\nnegenentwintig\ndertig"
+
+	expectedLines := dutchNumbers
+
+	scanner := bufio.NewScanner(strings.NewReader(inputString))
+
+	actualLines := []string{}
+	for scanner.Scan() {
+		actualLines = append(actualLines, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("Scanner error: %v", err)
+	}
+
+	if len(actualLines) != len(expectedLines) {
+		t.Fatalf("Mismatch in number of lines. Expected %d, got %d. Actual: %v", len(expectedLines), len(actualLines), actualLines)
+	}
+
+	for i := range expectedLines {
+		if actualLines[i] != expectedLines[i] {
+			t.Errorf("Line %d mismatch. Expected '%s', got '%s'", i, expectedLines[i], actualLines[i])
+		}
+	}
 }
