@@ -9,10 +9,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"sync"
 	"syscall"
 	"unicode/utf8"
+
+	"golang.org/x/term"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pydpll/errorutils"
@@ -27,7 +28,7 @@ var (
 )
 
 func main() {
-	defer retainFunctionalTTY()
+	defer retainFunctionalTTY(termSttyState())
 	err := app.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)
 }
@@ -190,7 +191,7 @@ func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{},
 	if err != nil {
 		//handle filesystem boundary errors and copy instead
 		if errors.Is(err, syscall.EXDEV) {
-			logrus.Warn("unable to rename scratchpad to target, copying instead")
+			logrus.Debug("unable to rename scratchpad to target, copying instead")
 			src, err := os.Open(scratchpad.Name())
 			errorutils.ExitOnFail(err)
 			defer src.Close()
@@ -208,10 +209,22 @@ func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{},
 
 var userOverwrite bool
 
-func retainFunctionalTTY() {
+func retainFunctionalTTY(fd uintptr, oldState *term.State) {
+	defer term.Restore(int(fd), oldState)
 	if v := recover(); v != nil {
 		logrus.Warn(v)
 	}
-	_, err := exec.Command("stty", "sane").Output()
-	errorutils.WarnOnFail(err)
+
+}
+
+func termSttyState() (uintptr, *term.State) {
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err != nil {
+		panic(err)
+	}
+	defer tty.Close()
+	fd := int(tty.Fd())
+	oldState, err := term.GetState(int(fd))
+	errorutils.ExitOnFail(err)
+	return uintptr(fd), oldState
 }

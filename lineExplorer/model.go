@@ -21,7 +21,7 @@ func New(file *os.File, idx index) Model {
 		shouldDelete: make(map[uint32]struct{}),
 		keymap:       defaultKeymap(),
 		buf: lines{
-			unselectedItemStyle: lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#B69AA6", Dark: "#4F6367"}),
+			unselectedItemStyle: lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#37282f", Dark: "#4F6367"}),
 			selectedItemStyle:   lipgloss.NewStyle().Foreground(selectioncolor),
 			AfterLines:          make([]string, 2),
 			BeforeLines:         make([]string, 2),
@@ -29,7 +29,7 @@ func New(file *os.File, idx index) Model {
 		},
 		help:            h,
 		shouldOverwrite: true, //default assumption
-		titleStyle:      lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#AC3931", Dark: "#DBFE87"}).Background(lipgloss.AdaptiveColor{Light: "#D9B7E1", Dark: "#8f12abff"}),
+		titleStyle:      lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#D6BA7C", Dark: "#131727"}).Background(selectioncolor),
 	}
 }
 
@@ -137,7 +137,7 @@ func defaultKeymap() keymap {
 			key.WithHelp("d", "delete"),
 		),
 		Shuffle: key.NewBinding(
-			key.WithKeys("space", "s"),
+			key.WithKeys(" ", "s"),
 			key.WithHelp("space", "shuffle"),
 		),
 		Abort: key.NewBinding(
