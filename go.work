@@ -16,6 +16,7 @@ use (
 	./kompti
 	./kwiqExt
 	./lineExplorer
+	./lotajxo
 	./mdMake
 	./megalophobia
 	./quoteadder
