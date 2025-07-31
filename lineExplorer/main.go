@@ -24,7 +24,7 @@ import (
 var (
 	CommitId string
 	Version  string
-	Revision = ".0"
+	Revision = ".1"
 )
 
 func main() {
@@ -68,11 +68,14 @@ func readAndShow(ctx context.Context, cmd *cli.Command) error {
 		changes, err := tea.NewProgram(model).Run()
 		if err != nil {
 			return err
-		}
+		}	
 		//once it is over, the file is overwritten without the lines indicated by the user
 		if logrus.IsLevelEnabled(logrus.DebugLevel) { //no changes
 			logrus.Debugf("changes: %v", changes.(Model).shouldDelete)
 			return nil
+		}
+		if len(changes.(Model).shouldDelete) == 0 {
+			return nil // no changes to save to the original file
 		}
 		err = applyChanges(tmp, ogFilepath, changes.(Model).shouldDelete, srcSHA)
 		if err != nil {
@@ -155,7 +158,7 @@ func applyChanges(tmp *os.File, target string, shouldDelete map[uint32]struct{},
 		if tSHA != srcSHA {
 			validateOverwrite.Run()
 			if !userOverwrite {
-				return errorutils.NewReport("ERROR: target file has been modified, your changes were saved to"+tmp.Name(), "tFMpyFIa4FH")
+				return errorutils.NewReport("user requested modification to the file, but these were not saved. Your changes are stashed into "+tmp.Name(), "tFMpyFIa4FH")
 			}
 		}
 	}
