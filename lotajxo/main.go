@@ -20,7 +20,6 @@ const (
 	ColorCyan    = "\033[1;36m" // Bright Cyan
 )
 
-.
 func generateAndReflectRandomUint8V2() {
 	randomNum := uint8(rand.IntN(256))
 
@@ -38,7 +37,7 @@ func main() {
 		// TODO: Add help message
 		fmt.Printf("random uint8 generator simultanious representations in decimal, hexadecimal, and binary\n\t --version, -v, version\n\t --help, -h, this help message\n")
 	} else if len(os.Args) > 1 {
-		fmt.Printf("%sunrecognized arguments:%s %s\n", ColorRed,os.Args[1:], ColorReset)
+		fmt.Printf("%sunrecognized arguments:%s %s\n", ColorRed, os.Args[1:], ColorReset)
 	}
 	generateAndReflectRandomUint8V2()
 }
