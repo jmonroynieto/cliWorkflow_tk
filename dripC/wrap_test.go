@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -70,4 +71,10 @@ func TestBuf(t *testing.T) {
 	if !reflect.DeepEqual(rb.GetAll(), []string{"5", "6"}) {
 		t.Errorf("expected [5 6], got %v", rb.GetAll())
 	}
+}
+
+func TestCardPrint(t *testing.T) {
+	f, _:= os.Open("./test.txt")
+	cardPrint(f)
+	fmt.Print("\033[0m")
 }

@@ -79,7 +79,7 @@ func portionItemsToLines(items []string, config ButtonConfig, terminalWidth int)
 	}
 
 	// Don't forget the last line
-	if len(currentLine) > 0 && currentLineWidth == terminalWidth {
+	if len(currentLine) > 0 {
 		result = append(result, currentLine)
 	}
 

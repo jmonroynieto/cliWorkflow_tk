@@ -73,7 +73,7 @@ func main() {
 		case "TIMED":
 			timedChange()
 		case "CARDS":
-			cardPrint()
+			cardPrint(os.Stdin)
 		default:
 			fmt.Print("\033[0m")
 			fmt.Println(usage)
@@ -159,7 +159,7 @@ looper:
 }
 
 // use lipgloss to make cards
-func cardPrint() {
+func cardPrint(r *os.File) {
 	//reset colorchange
 	fmt.Print("\033[0m")
 
@@ -168,7 +168,7 @@ func cardPrint() {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go renderCards(linesIN_ch, &wg)
-	inputReader := bufio.NewScanner(os.Stdin)
+	inputReader := bufio.NewScanner(r)
 	for inputReader.Scan() {
 		linesIN_ch <- inputReader.Text()
 	}
@@ -234,7 +234,7 @@ func renderCards(linesIN_ch chan string, wg *sync.WaitGroup) {
 
 func lipglossMagic(lineItems []string, config ButtonConfig) string {
 	buttons := make([]string, len(lineItems))
-	buttonStyle := lipgloss.NewStyle().Background(lipgloss.Color("205")).Foreground(lipgloss.Color("0")).
+	buttonStyle := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#bebebe", Dark: "#000000"}).
 		Padding(0, config.HorizontalPadding/2)
 
 	for i, item := range lineItems {
@@ -266,7 +266,7 @@ var ansiToLipgloss = map[string]lipgloss.AdaptiveColor{
 	"\033[97m":       {Light: "#d9d9d9", Dark: "#f2f2f2"},   // Platinum
 	"\033[38;5;196m": {Light: "#e9724d", Dark: "#f09b7c"},   // Terracotta
 	"\033[38;5;84m":  {Light: "#48c9b0", Dark: "#82e0d1"},   // Seafoam Green
-	"\033[38;5;130m": {Light: "#c094f6", Dark: "#297f34ff"},   // Mauve
+	"\033[38;5;130m": {Light: "#c094f6", Dark: "#297f34ff"}, // Mauve
 	"\033[38;5;34m":  {Light: "#673ab7", Dark: "#83081eff"}, // Amethyst
 	"\033[38;5;208m": {Light: "#33725b", Dark: "#5c9a7e"},   // Forest Green
 	"\033[38;5;166m": {Light: "#ff6f61", Dark: "#ff978a"},   // Coral Pink
