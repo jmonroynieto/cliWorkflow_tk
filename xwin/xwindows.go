@@ -16,6 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v3"
 )
+//alternatively use xprop WM_CLASS
 
 var (
 	Version  string
