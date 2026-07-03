@@ -28,6 +28,20 @@ const (
 	colorReset    = "\033[0m"
 )
 
+// record holds a note entry for a file.
+type record struct {
+	note string
+	date string
+	tag  string // NEW: optional tag for categorization, filtering, and listing
+}
+
+func (r record) String() string {
+	if r.tag != "" {
+		return fmt.Sprintf("%s -- %s [tag: %s]", r.date, r.note, r.tag)
+	}
+	return fmt.Sprintf("%s -- %s", r.date, r.note)
+}
+
 func main() {
 	args := os.Args[1:]
 
@@ -52,7 +66,7 @@ func main() {
 	}
 	switch args[0] {
 	case "-h", "--help":
-		fmt.Println("I'll tell you how to use it soon. Sorry #todo")
+		fmt.Println(helptext)
 		return
 	case "-v", "--version", "-version":
 		fmt.Printf("describeFiles version %s%s (%s)\n", Version, Revision, CommitId)
@@ -72,9 +86,10 @@ func main() {
 		}
 
 		newNote := readNoteFromPrompt(filename)
+		newTag := readTagFromPrompt(filename)
 		now := time.Now()
 		timestamp := now.Format("2006-Feb-02 15:04:05")
-		notes[filename] = record{note: newNote, date: timestamp}
+		notes[filename] = record{note: newNote, date: timestamp, tag: newTag}
 	}
 
 	err = writeNotesFile(notes)
@@ -84,15 +99,6 @@ func main() {
 	}
 
 	tellUSR("Notes saved successfully")
-}
-
-type record struct {
-	note string
-	date string
-}
-
-func (r record) String() string {
-	return fmt.Sprintf("%s -- %s", r.date, r.note)
 }
 
 func readNotesFile() (map[string]record, error) {
@@ -106,11 +112,25 @@ func readNotesFile() (map[string]record, error) {
 	}
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 		fields := strings.Split(line, "\t")
 		if len(fields) == 3 {
-			notes[fields[1]] = record{date: fields[0], note: fields[2]}
+			notes[fields[1]] = record{
+				date: fields[0],
+				note: fields[2],
+				tag:  "",
+			}
+		} else if len(fields) == 4 {
+			notes[fields[1]] = record{
+				date: fields[0],
+				note: fields[2],
+				tag:  fields[3],
+			}
 		}
-
+		// malformed lines are silently ignored (consistent with original lenient behavior for non-3)
 	}
 	return notes, nil
 }
@@ -118,7 +138,7 @@ func readNotesFile() (map[string]record, error) {
 func readNoteFromPrompt(filename string) string {
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Printf("Enter note for file %s:\n", filename)
+	fmt.Printf("Ente note for file %s:\n", filename)
 	note, err := reader.ReadString('\n')
 	if err == io.EOF {
 		err = nil
@@ -128,17 +148,25 @@ func readNoteFromPrompt(filename string) string {
 	return strings.TrimSpace(note)
 }
 
-func writeNotesFile(notes map[string]record) error {
-	var lines []string
-	for filename, record := range notes {
-		line := fmt.Sprintf("%s\t%s\t%s\n", record.date, filename, record.note)
-		lines = append(lines, line)
+func readTagFromPrompt(filename string) string {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Printf("Tag for file %s (Enter to skip):\n", filename)
+	tag, err := reader.ReadString('\n')
+	if err == io.EOF {
+		err = nil
 	}
+	errorutils.ExitOnFail(err, errorutils.WithMsg(fmt.Sprintf("Unexpected error while taking in tag for %s: %v", filename, err)))
 
-	data := []byte(strings.Join(lines, "\n") + "\n")
-	err := os.WriteFile(notesFileName, data, 0o644)
+	return strings.TrimSpace(tag)
+}
 
-	return err
+func writeNotesFile(notes map[string]record) error {
+	var b strings.Builder
+	for filename, rec := range notes {
+		fmt.Fprintf(&b, "%s\t%s\t%s\t%s\n", rec.date, filename, rec.note, rec.tag)
+	}
+	return os.WriteFile(notesFileName, []byte(b.String()), 0o644)
 }
 
 func tellUSR(message ...string) {
@@ -153,18 +181,49 @@ func retrieveNotesTable() ([]table.Row, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	var rowmaker []table.Row
 	for scanner.Scan() {
-		line := scanner.Text()
-		fields := strings.Split(line, "\t") // expects three
-		if len(fields) != 3 && (len(fields) > 2) {
-			errorutils.ExitOnFail(fmt.Errorf("error: table malformed there is a row with malformed fields %q of length: %d", fields, len(fields)))
-		}
-		if fields[0] == "" {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
 			continue
 		}
-		rowmaker = append(rowmaker, table.Row(fields))
+		fields := strings.Split(line, "\t")
+		var row table.Row
+		if len(fields) == 3 {
+			// Backwards compatibility: old format without tag
+			row = table.Row{fields[0], fields[1], fields[2], ""}
+		} else if len(fields) == 4 {
+			row = table.Row{fields[0], fields[1], fields[2], fields[3]}
+		} else {
+			errorutils.ExitOnFail(fmt.Errorf("error: table malformed — row with %d fields (expected 3 or 4): %q", len(fields), fields))
+			continue
+		}
+		rowmaker = append(rowmaker, row)
 	}
 	errorutils.ExitOnFail(scanner.Err())
-	// old printer
-	//	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, '\t', 0)
 	return rowmaker, nil
 }
+
+var helptext = `
+describeFiles — attach timestamped notes (and tags) to files in a directory
+
+USAGE:
+  describeFiles                  Launch the interactive TUI to browse existing notes
+  describeFiles <file> [files...]  Add or update a note (and optional tag) for the given file(s)
+
+OPTIONS:
+  -h, --help     Show this help message
+  -v, --version  Show version information
+
+ADDING / UPDATING NOTES:
+  • Run describeFiles with one or more filenames as arguments.
+  • The filename acts as the unique key — last entry overwrites.
+  • Tags make it easy to filter and group notes later (visible in TUI and grep-friendly output).
+
+TUI KEYBOARD SHORTCUTS:
+  ↑ / ↓            Move selection
+  Enter            Print "filename:note #tag" (grep-friendly) and exit
+  q / Ctrl+C       Quit
+
+STORAGE:
+  • Notes are stored in ./description.notes (tab-delimited, human-readable, version-control friendly)
+  • Format: timestamp<TAB>filename<TAB>note<TAB>tag
+  `

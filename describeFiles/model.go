@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -10,7 +12,8 @@ func showTable(rows []table.Row) table.Model {
 	columns := []table.Column{
 		{Title: "note updated", Width: 20},
 		{Title: "file", Width: 13},
-		{Title: "note", Width: 47},
+		{Title: "note", Width: 42},
+		{Title: "tag", Width: 16},
 	}
 
 	t := table.New(
@@ -59,8 +62,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "enter":
+			row := m.table.SelectedRow()
+			if len(row) < 3 {
+				return m, nil
+			}
+			out := fmt.Sprintf("%s:%s", row[1], row[2])
+			if len(row) > 3 && row[3] != "" {
+				out += " #" + row[3]
+			}
 			return m, tea.Sequence(
-				tea.Printf("%s:%s", m.table.SelectedRow()[1], m.table.SelectedRow()[2]),
+				tea.Printf("%s", out),
 			)
 		}
 	}
