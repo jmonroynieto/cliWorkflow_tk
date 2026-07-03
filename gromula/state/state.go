@@ -14,7 +14,7 @@ const StateDirName = "gromula"
 
 // Filenames
 const (
-	PathStateFile     = "pathstate.json"
+	PathStateFile   = "pathstate.json"
 	OperationsLogFile = "operations.jsonl"
 )
 
@@ -29,10 +29,10 @@ type PathEntry struct {
 
 // PathState is the persisted state document.
 type PathState struct {
-	Version   int         `json:"version"`
-	UpdatedAt time.Time   `json:"updated_at"`
-	SessionID string      `json:"session_id,omitempty"`
-	Entries   []PathEntry `json:"entries"`
+	Version   int           `json:"version"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	SessionID string        `json:"session_id,omitempty"`
+	Entries   []PathEntry   `json:"entries"`
 }
 
 // getStateDir returns the full path to ~/.local/state/gromula (or XDG_STATE_HOME equivalent)
@@ -228,28 +228,56 @@ func dedupAndOrder(existing []PathEntry, toAdd []PathEntry, toRemove map[string]
 }
 
 // ApplyAdd updates the state by adding the given paths (with source and session).
-// It returns the new ordered PATH string and saves the updated state.
+// If a path already exists, it is treated as an "overwrite" (removed + re-inserted
+// at the new position with Action="overwrite"). This allows repositioning paths.
 func ApplyAdd(st *PathState, paths []string, source, sessionID string, prepend bool) (string, error) {
 	now := time.Now()
 
+	// Build a quick lookup of existing paths
+	existingPaths := make(map[string]bool, len(st.Entries))
+	for _, e := range st.Entries {
+		existingPaths[e.Path] = true
+	}
+
 	toAdd := make([]PathEntry, 0, len(paths))
+	pathsToOverwrite := make(map[string]bool)
+
 	for _, p := range paths {
 		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
 		}
-		// Clean the path a bit (user can still decide on Abs if wanted)
 		cleaned := filepath.Clean(p)
+
+		action := "append"
+		if prepend {
+			action = "prepend"
+		}
+
+		if existingPaths[cleaned] {
+			action = "overwrite"
+			pathsToOverwrite[cleaned] = true
+		}
+
 		toAdd = append(toAdd, PathEntry{
 			Path:      cleaned,
 			Source:    source,
-			Action:    map[bool]string{true: "prepend", false: "append"}[prepend],
+			Action:    action,
 			Timestamp: now,
 			SessionID: sessionID,
 		})
 	}
 
-	toRemove := make(map[string]bool) // no removes in pure add
+	// Remove old entries that we are overwriting so they can be re-positioned
+	filtered := make([]PathEntry, 0, len(st.Entries))
+	for _, e := range st.Entries {
+		if !pathsToOverwrite[e.Path] {
+			filtered = append(filtered, e)
+		}
+	}
+	st.Entries = filtered
+
+	toRemove := make(map[string]bool)
 	st.Entries = dedupAndOrder(st.Entries, toAdd, toRemove, prepend)
 	st.SessionID = sessionID
 
@@ -257,9 +285,9 @@ func ApplyAdd(st *PathState, paths []string, source, sessionID string, prepend b
 		return "", fmt.Errorf("failed to save state after add: %w", err)
 	}
 
-	// Also log the operation(s)
+	// Log operations (now correctly shows "overwrite" when applicable)
 	for _, e := range toAdd {
-		_ = AppendOperation(map[string]any{ // best effort logging
+		_ = AppendOperation(map[string]any{
 			"op":         "add",
 			"path":       e.Path,
 			"source":     e.Source,
@@ -269,7 +297,7 @@ func ApplyAdd(st *PathState, paths []string, source, sessionID string, prepend b
 		})
 	}
 
-	return buildPathString(st.Entries), nil
+	return BuildPathString(st.Entries), nil
 }
 
 // ApplyRemove updates the state by removing the given paths.
@@ -286,11 +314,11 @@ func ApplyRemove(st *PathState, paths []string, source, sessionID string) (strin
 	// We still record remove operations even if path wasn't present
 	for p := range toRemove {
 		_ = AppendOperation(map[string]any{
-			"op":         "remove",
-			"path":       p,
-			"source":     source,
-			"action":     "remove",
-			"timestamp":  now,
+			"op":        "remove",
+			"path":      p,
+			"source":    source,
+			"action":    "remove",
+			"timestamp": now,
 			"session_id": sessionID,
 		})
 	}
@@ -302,7 +330,7 @@ func ApplyRemove(st *PathState, paths []string, source, sessionID string) (strin
 		return "", fmt.Errorf("failed to save state after remove: %w", err)
 	}
 
-	return buildPathString(st.Entries), nil
+	return BuildPathString(st.Entries), nil
 }
 
 // ApplyClean deduplicates the current environment PATH without modifying state
@@ -331,8 +359,9 @@ func ApplyClean() string {
 	return strings.Join(result, sep)
 }
 
-// buildPathString turns the ordered entries into a PATH string.
-func buildPathString(entries []PathEntry) string {
+// BuildPathString turns the ordered entries into a PATH string.
+// Exported so CLI and other packages can get a clean, bash-ready PATH.
+func BuildPathString(entries []PathEntry) string {
 	if len(entries) == 0 {
 		return ""
 	}

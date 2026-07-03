@@ -31,6 +31,7 @@ func main() {
 			historyCmd(),
 			initCmd(),
 			resetCmd(),
+			pathCmd(),
 		},
 	}
 
@@ -149,6 +150,30 @@ func cleanCmd() *cli.Command {
 	}
 }
 
+// pathCmd prints ONLY the current tracked PATH string (bash-ready, no extra output).
+// Use: export PATH="$(gromula path)"
+func pathCmd() *cli.Command {
+	return &cli.Command{
+		Name:  "path",
+		Usage: "Print the current tracked PATH (clean string, suitable for export)",
+		Action: func(ctx context.Context, c *cli.Command) error {
+			st, err := state.Load()
+			if err != nil {
+				return err
+			}
+
+			if len(st.Entries) == 0 {
+				// No state yet → fall back to current environment PATH
+				fmt.Print(os.Getenv("PATH"))
+				return nil
+			}
+
+			fmt.Print(state.BuildPathString(st.Entries))
+			return nil
+		},
+	}
+}
+
 func showCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "show",
@@ -235,7 +260,7 @@ func resetCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "reset",
 		Usage: "Clear all tracked state (does NOT modify your current PATH)",
-		Flags: [] cli.Flag{
+		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "confirm",
 				Aliases: []string{"c"},
