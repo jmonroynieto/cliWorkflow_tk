@@ -24,7 +24,7 @@ import (
 var (
 	CommitId string
 	Version  string
-	Revision = ".1"
+	Revision = "0"
 )
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 
 var app *cli.Command = &cli.Command{
 	Name:    "lineExplorer",
-	Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+	Version: fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "debug",

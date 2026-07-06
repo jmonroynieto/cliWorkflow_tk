@@ -17,14 +17,14 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
 var app = &cli.Command{
 	Name:        "shfossils",
 	Description: "uncovers all commands used in a shell script or bash history",
-	Version:     fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+	Version:     fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "sample",

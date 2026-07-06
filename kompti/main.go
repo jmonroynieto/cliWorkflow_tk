@@ -16,7 +16,7 @@ const (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -28,11 +28,11 @@ func main() {
 		q := transformInto(y, m)
 		fmt.Printf("%d\n", q)
 	} else if args[1] == "help" || args[1] == "-h" || args[1] == "--help" {
-		fmt.Printf("%s (%s)\n", Version+Revision, CommitId)
+		fmt.Printf("%s.%s (%s)\n", Version,Revision, CommitId)
 		fmt.Println(helpText)
 		os.Exit(0)
 	} else if args[1] == "version" || args[1] == "-v" || args[1] == "--version" {
-		fmt.Printf("kompti version %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("kompti version %s.%s (%s)\n", Version, Revision, CommitId)
 		os.Exit(0)
 	} else if len(args) == 2 && regex.MatchString(args[1]) {
 		q, _ := strconv.Atoi(args[1])

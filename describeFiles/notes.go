@@ -18,7 +18,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -69,7 +69,7 @@ func main() {
 		fmt.Println(helptext)
 		return
 	case "-v", "--version", "-version":
-		fmt.Printf("describeFiles version %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("describeFiles version %s.%s (%s)\n", Version, Revision, CommitId)
 		return
 	}
 

@@ -14,7 +14,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -22,7 +22,7 @@ func main() {
 	cmd := &cli.Command{
 		Name:    "gromula",
 		Usage:   "Safe, trackable PATH management as a shell intermediary",
-		Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+		Version: fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 		Commands: []*cli.Command{
 			addCmd(),
 			removeCmd(),

@@ -9,7 +9,7 @@ import (
 var (
 	CommitId string
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 )
 
 const (
@@ -31,7 +31,7 @@ func generateAndReflectRandomUint8V2() {
 
 func main() {
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v" || os.Args[1] == "version") {
-		fmt.Printf("lotajxo %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("lotajxo %s.%s (%s)\n", Version, Revision, CommitId)
 		return
 	} else if len(os.Args) > 1 && (os.Args[1] == "--help" || os.Args[1] == "-h" || os.Args[1] == "help") {
 		// TODO: Add help message

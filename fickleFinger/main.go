@@ -11,7 +11,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId = ""
 )
 
@@ -21,7 +21,7 @@ func main() {
 		Usage:    "custon random value generator",
 		Flags:    appFlags,
 		Commands: appCmds,
-		Version:  fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+		Version:  fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 	}
 
 	app.Run(context.Background(), os.Args)

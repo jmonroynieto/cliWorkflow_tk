@@ -15,7 +15,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -27,7 +27,7 @@ func init() {
 
 var app cli.Command = cli.Command{
 	Name:        "kwiqExt",
-	Version:     fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+	Version:     fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 	Description: "identify file types by category",
 	Commands:    appCMDS,
 	Flags: []cli.Flag{

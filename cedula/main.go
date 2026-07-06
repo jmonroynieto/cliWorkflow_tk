@@ -11,7 +11,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -108,7 +108,7 @@ func validArguments(args []string) string {
 		fmt.Println("Usage: cedula <path_to_package_directory>")
 		os.Exit(0)
 	case "-v", "--version":
-		fmt.Printf("cedula version %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("cedula version %s.%s (%s)\n", Version, Revision, CommitId)
 		os.Exit(0)
 	}
 

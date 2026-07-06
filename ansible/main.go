@@ -20,7 +20,7 @@ import (
 var (
 	CommitId   string
 	Version    string
-	Revision   = ".0"
+	Revision   = "0"
 	errTIMEOUT = errors.New("timeout")
 )
 
@@ -28,7 +28,7 @@ var app = cli.Command{
 	Name:        "Ansible",
 	Description: "log simply log",
 	Action:      superluminal,
-	Version:     fmt.Sprintf("%s (%s)", Version+Revision, CommitId),
+	Version:     fmt.Sprintf("%s.%s (%s)", Version,Revision, CommitId),
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "debug",

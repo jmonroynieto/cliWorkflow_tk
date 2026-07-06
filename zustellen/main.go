@@ -15,7 +15,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -81,7 +81,7 @@ func main() {
 		fmt.Println(usage)
 		return
 	case "-v", "--version":
-		fmt.Printf("zustellen version %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("zustellen version %s.%s (%s)\n", Version, Revision, CommitId)
 		return
 	}
 	annotee := os.Args[1]

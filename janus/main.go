@@ -17,14 +17,14 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
 var cmd = &cli.Command{
 	Name:    "janus",
 	Usage:   "SSH ProxyJump two-faced toggler — keep your tunnels consistent",
-	Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+	Version: fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "file",

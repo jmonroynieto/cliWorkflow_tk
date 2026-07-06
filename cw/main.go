@@ -20,7 +20,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -28,7 +28,7 @@ var app = cli.Command{
 	Name:                          "cw",
 	Description:                   "cw is a program designed to add bookmarks to the terminal for quick access to files and folders",
 	Commands:                      appCmds,
-	Version:                       fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+	Version:                       fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 	CustomRootCommandHelpTemplate: printHelp,
 }
 

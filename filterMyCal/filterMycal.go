@@ -13,7 +13,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -26,7 +26,7 @@ func main() {
 	flag.BoolVar(&versionPrint, "version", false, "print version of the tool")
 	flag.Parse()
 	if versionPrint {
-		fmt.Printf("filterMyCal version %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("filterMyCal version %s.%s (%s)\n", Version, Revision, CommitId)
 		return
 	} else if *daysFlag == "" || *fileArg == "" {
 		flag.Usage()

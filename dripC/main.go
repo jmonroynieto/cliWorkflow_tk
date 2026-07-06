@@ -15,7 +15,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".1"
+	Revision = "0"
 	CommitId string
 	color    string
 	old      string
@@ -56,11 +56,11 @@ skipping the mode argument would color all input a single color.`
 
 func main() {
 	if len(os.Args) > 3 || (len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help")) {
-		fmt.Printf("dripC v%s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("dripC v%s.%s (%s)\n", Version, Revision, CommitId)
 		fmt.Println(usage)
 		return
 	} else if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
-		fmt.Printf("dripC version %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("dripC version %s.%s (%s)\n", Version, Revision, CommitId)
 		return
 	}
 	changeColor()
