@@ -99,7 +99,6 @@ var (
 )
 
 func main() {
-	cmd.Run(context.Background(), os.Args)
 	err := cmd.Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)
 }
@@ -269,18 +268,45 @@ func applyStateToBlock(lines []string, block Block, target ProxyState) []string 
 	return newLines
 }
 
-// createBackup creates a timestamped backup
-func createBackup(srcPath, backupDir string) (string, error) {
+// writeFileAtomic writes via temp file + rename so an active ssh process
+// never catches the config half-written.
+func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".janus-tmp-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file in %s: %w", dir, err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath) // no-op once the rename below succeeds
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to write temp file %s: %w", tmpPath, err)
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to sync temp file %s: %w", tmpPath, err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file %s: %w", tmpPath, err)
+	}
+	if err := os.Chmod(tmpPath, perm); err != nil {
+		return fmt.Errorf("failed to chmod temp file %s: %w", tmpPath, err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("failed to rename %s to %s: %w", tmpPath, path, err)
+	}
+	return nil
+}
+
+// createBackup writes a timestamped backup of srcData — the exact bytes we
+// already have in hand, not a fresh re-read off disk.
+func createBackup(srcData []byte, backupDir string) (string, error) {
 	timestamp := time.Now().Format("20060102-150405")
 	backupName := fmt.Sprintf("config.bak.%s", timestamp)
 	backupPath := filepath.Join(backupDir, backupName)
 
-	srcData, err := os.ReadFile(srcPath)
-	if err != nil {
-		return "", err
-	}
-
-	if err := os.WriteFile(backupPath, srcData, 0o644); err != nil {
+	if err := writeFileAtomic(backupPath, srcData, 0o644); err != nil {
 		return "", err
 	}
 
@@ -289,6 +315,11 @@ func createBackup(srcPath, backupDir string) (string, error) {
 
 // performToggle is the core logic for both toggle and explicit set
 func performToggle(sshPath, backupDir string, targetState ProxyState, isToggle bool) error {
+	info, err := os.Stat(sshPath)
+	if err != nil {
+		return fmt.Errorf("failed to stat SSH config at %s: %w", sshPath, err)
+	}
+
 	data, err := os.ReadFile(sshPath)
 	if err != nil {
 		return fmt.Errorf("failed to read SSH config at %s: %w", sshPath, err)
@@ -327,14 +358,15 @@ func performToggle(sshPath, backupDir string, targetState ProxyState, isToggle b
 	}
 
 	// Backup first
-	backupPath, err := createBackup(sshPath, backupDir)
+	backupPath, err := createBackup(data, backupDir)
 	if err != nil {
 		return fmt.Errorf("failed to create backup: %w", err)
 	}
 	fmt.Printf("Backup created: %s\n", backupPath)
 
-	// Write the new config
-	if err := os.WriteFile(sshPath, []byte(strings.Join(modifiedLines, "\n")), 0o644); err != nil {
+	// Write the new config, keeping the original file permissions
+	newData := []byte(strings.Join(modifiedLines, "\n"))
+	if err := writeFileAtomic(sshPath, newData, info.Mode().Perm()); err != nil {
 		return fmt.Errorf("failed to write updated SSH config: %w", err)
 	}
 
