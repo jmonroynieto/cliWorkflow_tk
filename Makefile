@@ -9,7 +9,7 @@ build:
 		@mkdir -p $(build_dir)
 		@for tool in $(TOOLS); do\
 			echo "--- Building $$tool ---" ;\
-			go build --ldflags="-X main.CommitId=$(GIT_TAG) -X main.Version=1.5 -s -w" -o $(build_dir)$$tool ./$$tool ; \
+			go build --ldflags="-X main.CommitId=$(GIT_TAG) -X main.Version=1.6 -s -w" -o $(build_dir)$$tool ./$$tool ; \
 		done
 
 install_dir := /home/pollo/Local/bin/
