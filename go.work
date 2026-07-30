@@ -1,4 +1,4 @@
-go 1.25.2
+go 1.26.5
 
 use (
 	./ansCRUBi
@@ -10,6 +10,7 @@ use (
 	./cueLine
 	./cw
 	./describeFiles
+	./dokwerker
 	./dripC
 	./fickleFinger
 	./filterMyCal
@@ -23,6 +24,7 @@ use (
 	./mdMake
 	./megalophobia
 	./quoteadder
+	./sdl
 	./shFossils
 	./watchAdir
 	./xwin
