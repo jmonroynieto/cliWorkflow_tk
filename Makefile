@@ -26,9 +26,11 @@ install:
 		@rm -d ${build_dir}
 
 
-.PHONY: install-systemd                                                                                                      
-install-systemd:                                                                                                             
-	install -d $(UNITDIR)                                                                                                    
+UNITDIR ?= $(HOME)/.config/systemd/user
+
+.PHONY: install-systemd
+install-systemd:
+	install -d $(UNITDIR)
 	install -m 644 talaria/tools/systemd-services/talaria-maintain.service $(UNITDIR)/                                       
 	install -m 644 talaria/tools/systemd-services/talaria-maintain.timer $(UNITDIR)/                                         
 	@echo "systemctl --user daemon-reload"                                                                                   
