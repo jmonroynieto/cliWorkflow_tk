@@ -1,0 +1,14 @@
+[Unit]
+Description=talaria workspace maintain (reconcile + GC)
+# Deliberately no network dependency — registry and workspaces are local.
+
+[Service]
+Type=oneshot
+# systemd --user does NOT inherit an interactive shell PATH.
+# The toolkit / go.work install step should put the real install_dir first
+# (see tools/systemd-services/README.md). Defaults cover common layouts.
+Environment=PATH=%h/Local/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Prefer talariad when it is up; otherwise open the JSON registry directly.
+# --quiet: one journal-friendly summary line on stdout.
+# Bare command name: resolved via PATH above (no hard-coded install prefix).
+ExecStart=talaria maintain --gc-older-than 7d --quiet
