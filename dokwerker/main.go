@@ -63,17 +63,15 @@ func runCmdOutput(ctx context.Context, name string, args ...string) (string, err
 	return strings.TrimSpace(stdout.String()), err
 }
 
-// composeCfg carries project/stack options for docker compose invocations.
+// composeCfg carries project options for docker compose invocations.
 type composeCfg struct {
 	project string
-	stack   string
 	hostNet bool
 }
 
 func cfgFromCLI(c *cli.Command) composeCfg {
 	return composeCfg{
 		project: c.String("project"),
-		stack:   c.String("stack"),
 		hostNet: c.Bool("host-net"),
 	}
 }
@@ -98,11 +96,11 @@ services:
 // composeArgs builds a docker compose arg prefix.
 // When hostNet is set, merges a temp override (network_mode: host) without
 // changing the project's vendored/local compose file on disk permanently.
-func composeArgs(cfg composeCfg, rest ...string) ([]string, error) {
+func composeArgs(ctx context.Context, cfg composeCfg, rest ...string) ([]string, error) {
 	args := []string{"compose"}
 
 	if cfg.hostNet {
-		service, err := getServiceMapping(cfg.stack)
+		service, err := detectService(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -138,15 +136,21 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-// getServiceMapping returns the default compose service name based on stack type
-func getServiceMapping(stack string) (string, error) {
-	switch stack {
-	case "go":
-		return "go-dev", nil
-	case "ts":
-		return "obsidian-dev", nil
+// detectService returns the single service name defined in the current
+// directory's docker-compose.yml (as laid down by 'dokwerker init').
+func detectService(ctx context.Context) (string, error) {
+	out, err := runCmdOutput(ctx, "docker", "compose", "config", "--services")
+	if err != nil {
+		return "", fmt.Errorf("could not read docker-compose.yml in current directory (run 'dokwerker init' first): %w", err)
+	}
+	services := strings.Fields(out)
+	switch len(services) {
+	case 0:
+		return "", fmt.Errorf("no services found in docker-compose.yml")
+	case 1:
+		return services[0], nil
 	default:
-		return "", fmt.Errorf("unknown stack type '%s' (use 'go' or 'ts')", stack)
+		return "", fmt.Errorf("multiple services found in docker-compose.yml (%s); dokwerker expects a single dev service", strings.Join(services, ", "))
 	}
 }
 
@@ -167,6 +171,9 @@ func InitAction(ctx context.Context, c *cli.Command) error {
 	case "ts":
 		srcCompose = filepath.Join(boilerplateDir, "ts-docker-compose.yml")
 		srcDockerfile = filepath.Join(boilerplateDir, "ts-dockerfile")
+	case "rust":
+		srcCompose = filepath.Join(boilerplateDir, "rust-docker-compose.yml")
+		srcDockerfile = filepath.Join(boilerplateDir, "rust-Dockerfile")
 	default:
 		return fmt.Errorf("unsupported stack: %s", stack)
 	}
@@ -188,13 +195,13 @@ func InitAction(ctx context.Context, c *cli.Command) error {
 // UpAction builds and starts the compose stack
 func UpAction(ctx context.Context, c *cli.Command) error {
 	cfg := cfgFromCLI(c)
-	args, err := composeArgs(cfg, "up", "-d", "--build")
+	args, err := composeArgs(ctx, cfg, "up", "-d", "--build")
 	if err != nil {
 		return err
 	}
 
 	if cfg.hostNet {
-		service, _ := getServiceMapping(cfg.stack)
+		service, _ := detectService(ctx)
 		fmt.Printf("Host networking ON for service '%s' (temp compose override; project file unchanged).\n", service)
 		fmt.Println("Linux only: container shares the host network stack (no bridge isolation).")
 	} else {
@@ -207,7 +214,7 @@ func UpAction(ctx context.Context, c *cli.Command) error {
 // Prefer a running container when both exist.
 func serviceContainerID(ctx context.Context, cfg composeCfg, service string) (string, error) {
 	// Running first.
-	psArgs, err := composeArgs(cfg, "ps", "-q", "--status", "running", service)
+	psArgs, err := composeArgs(ctx, cfg, "ps", "-q", "--status", "running", service)
 	if err != nil {
 		return "", err
 	}
@@ -217,14 +224,14 @@ func serviceContainerID(ctx context.Context, cfg composeCfg, service string) (st
 	}
 
 	// Fallback: any state (or older compose without --status).
-	psArgs, err = composeArgs(cfg, "ps", "-aq", service)
+	psArgs, err = composeArgs(ctx, cfg, "ps", "-aq", service)
 	if err != nil {
 		return "", err
 	}
 	out, err = runCmdOutput(ctx, "docker", psArgs...)
 	if err != nil {
 		// Last resort without -a filter semantics differing across versions.
-		psArgs, err = composeArgs(cfg, "ps", "-q", service)
+		psArgs, err = composeArgs(ctx, cfg, "ps", "-q", service)
 		if err != nil {
 			return "", err
 		}
@@ -241,14 +248,14 @@ func serviceContainerID(ctx context.Context, cfg composeCfg, service string) (st
 
 // ensureServiceRunning starts the stack if the target service has no running container.
 func ensureServiceRunning(ctx context.Context, cfg composeCfg, service string) error {
-	psArgs, err := composeArgs(cfg, "ps", "-q", "--status", "running", service)
+	psArgs, err := composeArgs(ctx, cfg, "ps", "-q", "--status", "running", service)
 	if err != nil {
 		return err
 	}
 	out, err := runCmdOutput(ctx, "docker", psArgs...)
 	if err != nil {
 		// Older compose may not support --status; fall back to plain ps -q.
-		psArgs, err = composeArgs(cfg, "ps", "-q", service)
+		psArgs, err = composeArgs(ctx, cfg, "ps", "-q", service)
 		if err != nil {
 			return err
 		}
@@ -262,7 +269,7 @@ func ensureServiceRunning(ctx context.Context, cfg composeCfg, service string) e
 	}
 
 	fmt.Printf("Service '%s' is not running; starting stack...\n", service)
-	upArgs, err := composeArgs(cfg, "up", "-d", "--build")
+	upArgs, err := composeArgs(ctx, cfg, "up", "-d", "--build")
 	if err != nil {
 		return err
 	}
@@ -278,7 +285,7 @@ func listContainerIDs(ctx context.Context, cfg composeCfg) ([]string, error) {
 	var out string
 	var err error
 	if cfg.project != "" || cfg.hostNet {
-		args, aerr := composeArgs(cfg, "ps", "-q")
+		args, aerr := composeArgs(ctx, cfg, "ps", "-q")
 		if aerr != nil {
 			return nil, aerr
 		}
@@ -446,9 +453,9 @@ func netfixService(ctx context.Context, cfg composeCfg, service string) error {
 //	done
 func NetfixAction(ctx context.Context, c *cli.Command) error {
 	cfg := cfgFromCLI(c)
-	// Optional: scope to the stack's mapped service only.
+	// Optional: scope to the detected service only.
 	if c.Bool("service-only") {
-		service, err := getServiceMapping(cfg.stack)
+		service, err := detectService(ctx)
 		if err != nil {
 			return err
 		}
@@ -478,7 +485,7 @@ func NetfixAction(ctx context.Context, c *cli.Command) error {
 // probeService runs a non-interactive true inside the service to verify exec works.
 // Used so we only netfix on connectivity failures, not on interactive bash exit codes.
 func probeService(ctx context.Context, cfg composeCfg, service string) error {
-	args, err := composeArgs(cfg, "exec", "-T", service, "true")
+	args, err := composeArgs(ctx, cfg, "exec", "-T", service, "true")
 	if err != nil {
 		return err
 	}
@@ -488,7 +495,7 @@ func probeService(ctx context.Context, cfg composeCfg, service string) error {
 // recreateService force-recreates the service (used when host-net recovery needs a clean netns).
 func recreateService(ctx context.Context, cfg composeCfg, service string) error {
 	fmt.Printf("Force-recreating service '%s'...\n", service)
-	args, err := composeArgs(cfg, "up", "-d", "--build", "--force-recreate", "--no-deps", service)
+	args, err := composeArgs(ctx, cfg, "up", "-d", "--build", "--force-recreate", "--no-deps", service)
 	if err != nil {
 		return err
 	}
@@ -500,7 +507,7 @@ func recreateService(ctx context.Context, cfg composeCfg, service string) error 
 // (or force-recreates when --host-net is set — bridge reconnect does not apply).
 func ShellAction(ctx context.Context, c *cli.Command) error {
 	cfg := cfgFromCLI(c)
-	service, err := getServiceMapping(cfg.stack)
+	service, err := detectService(ctx)
 	if err != nil {
 		return err
 	}
@@ -531,7 +538,7 @@ func ShellAction(ctx context.Context, c *cli.Command) error {
 	}
 
 	// -it: allocate a TTY so interactive tools work.
-	args, err := composeArgs(cfg, "exec", "-it", service, "bash")
+	args, err := composeArgs(ctx, cfg, "exec", "-it", service, "bash")
 	if err != nil {
 		return err
 	}
@@ -560,14 +567,14 @@ type composeRow struct {
 func listComposeRows(ctx context.Context, cfg composeCfg) ([]composeRow, error) {
 	// Prefer modern compose format placeholders.
 	format := `{{.ID}}\t{{.Name}}\t{{.Service}}\t{{.State}}\t{{.Status}}`
-	args, err := composeArgs(cfg, "ps", "-a", "--format", format)
+	args, err := composeArgs(ctx, cfg, "ps", "-a", "--format", format)
 	if err != nil {
 		return nil, err
 	}
 	out, err := runCmdOutput(ctx, "docker", args...)
 	if err != nil {
 		// Fallback without -a / format differences.
-		args, aerr := composeArgs(cfg, "ps", "--format", format)
+		args, aerr := composeArgs(ctx, cfg, "ps", "--format", format)
 		if aerr != nil {
 			return nil, aerr
 		}
@@ -605,9 +612,9 @@ func listComposeRows(ctx context.Context, cfg composeCfg) ([]composeRow, error) 
 // StatusAction prints running/stopped compose services with attached networks.
 func StatusAction(ctx context.Context, c *cli.Command) error {
 	cfg := cfgFromCLI(c)
-	targetService, mapErr := getServiceMapping(cfg.stack)
-	if mapErr != nil {
-		// Still show status even if stack flag is weird; just no highlight.
+	targetService, detectErr := detectService(ctx)
+	if detectErr != nil {
+		// Still show status even if detection fails; just no highlight.
 		targetService = ""
 	}
 
@@ -618,7 +625,7 @@ func StatusAction(ctx context.Context, c *cli.Command) error {
 		fmt.Println("Compose project: (default from cwd docker-compose.yml)")
 	}
 	if targetService != "" {
-		fmt.Printf("Stack target:    %s → service %s\n", cfg.stack, targetService)
+		fmt.Printf("Detected service: %s\n", targetService)
 	}
 	if cfg.hostNet {
 		fmt.Println("Host-net flag:   on (status uses host-net override merge; running containers keep the mode they were created with)")
@@ -700,7 +707,7 @@ func orDash(s string) string {
 // DownAction tears down the compose stack
 func DownAction(ctx context.Context, c *cli.Command) error {
 	cfg := cfgFromCLI(c)
-	args, err := composeArgs(cfg, "down")
+	args, err := composeArgs(ctx, cfg, "down")
 	if err != nil {
 		return err
 	}
@@ -712,13 +719,13 @@ func DownAction(ctx context.Context, c *cli.Command) error {
 func main() {
 	cmd := &cli.Command{
 		Name:  "dokwerker",
-		Usage: "Generalized workflow manager for Go and TypeScript Docker development",
+		Usage: "Generalized workflow manager for Go, TypeScript, and Rust Docker development",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "stack",
 				Aliases: []string{"s"},
 				Value:   "go",
-				Usage:   "Target technology stack (go or ts)",
+				Usage:   "Boilerplate to copy on 'init'/'fresh' (go, ts, or rust); other commands detect the service from docker-compose.yml",
 			},
 			&cli.StringFlag{
 				Name:    "project",
@@ -757,7 +764,7 @@ func main() {
 					&cli.BoolFlag{
 						Name:    "service-only",
 						Aliases: []string{"S"},
-						Usage:   "Only reconnect the stack's mapped service (from --stack), not every container",
+						Usage:   "Only reconnect the service detected from the current directory's docker-compose.yml, not every container",
 					},
 				},
 				Action: NetfixAction,
