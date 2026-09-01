@@ -1,6 +1,6 @@
 GIT_TAG := $(shell git rev-parse --short HEAD)
 build_dir := build/
-TOOLS := ansCRUBi ansible barker calshow cedula chaptor cueLine cw describeFiles dokwerker dripC fickleFinger gromula filterMyCal indexFiles janus kompti kwiqExt lineExplorer  lotajxo mdMake megalophobia quoteadder sdl shFossils talaria/cmd/talaria talaria/cmd/talariad watchAdir xwin zustellen
+TOOLS := ansCRUBi ansible avaro barker calshow cedula chaptor cueLine cw describeFiles dokwerker dripC fickleFinger gromula filterMyCal indexFiles janus kompti kwiqExt lineExplorer  lotajxo mdMake megalophobia quoteadder sdl shFossils talaria/cmd/talaria talaria/cmd/talariad watchAdir xwin zustellen
 install_dir := /home/pollo/Local/bin/
 
 .PHONY: build

@@ -40,3 +40,4 @@
 
 2025-Feb-14 22:28:31	shFossils/	Parse .bash_history and extract the list of command line utilities used.
 
+2026-Feb-01 11:18:07	avaro/	Report and toggle ideapad battery conservation mode (the ~80% charge cap)
