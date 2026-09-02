@@ -17,21 +17,16 @@ var doctorCommand = &cli.Command{
 			return err
 		}
 
-		var dirs []adbx.RemoteDir
-		if cfg.RemoteDir != "" {
-			dirs = append(dirs, adbx.RemoteDir{Key: "remote_dir", Path: cfg.RemoteDir})
-		}
-		if cfg.VaultRemoteDir != "" {
-			dirs = append(dirs, adbx.RemoteDir{Key: "vault_remote_dir", Path: cfg.VaultRemoteDir})
-		}
-
 		report, err := adbx.Doctor(adbx.DoctorConfig{
 			DeviceSerial: cfg.DeviceSerial,
-			RemoteDirs:   dirs,
+			RemoteDirs:   remoteDirChecks(cfg),
 		})
 		printDoctorReport(report)
 		if err != nil {
 			return err
+		}
+		if !report.AllDirsExist() {
+			fmt.Println("run `logSync primeMobile` to create the missing directories on the device")
 		}
 		if !report.ServerReachable || !report.AllDirsExist() {
 			return fmt.Errorf("doctor: not ready to sync, see notes above")

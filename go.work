@@ -21,6 +21,7 @@ use (
 	./kompti
 	./kwiqExt
 	./lineExplorer
+	./logSync
 	./lotajxo
 	./mdMake
 	./megalophobia
@@ -28,7 +29,6 @@ use (
 	./sdl
 	./shFossils
 	./talaria
-	./logSync
 	./watchAdir
 	./xwin
 	./zustellen

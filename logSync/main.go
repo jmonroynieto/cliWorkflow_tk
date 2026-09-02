@@ -41,6 +41,7 @@ var app = &cli.Command{
 	Flags:   []cli.Flag{cfgPathFlag, debugFlag},
 	Commands: []*cli.Command{
 		doctorCommand,
+		primeMobileCommand,
 		syncCommand,
 		pushCommand,
 		pullCommand,
