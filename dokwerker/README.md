@@ -45,6 +45,7 @@ dokwerker down --project bibtex-1
 | `status` | `ps`, `st` | Table of services: state, status, container id, **net mode**, networks; marks the `--stack` shell target |
 | `netfix` | `reconnect`, `fixnet` | Force disconnect+reconnect bridge networks (parallel). Skips host-network containers. `--service-only` / `-S` limits to the stack service |
 | `down` | | `docker compose down` |
+| `containerdfix` | `cdfix` | Report where the image store lives; with `--apply`, move containerd's root off the root partition |
 | `fresh` | `reset` | `init` (if needed) → `up` → `shell` |
 
 ### Global flags
@@ -54,6 +55,45 @@ dokwerker down --project bibtex-1
 | `-s` / `--stack` | `go` | Stack → service map: `go` → `go-dev`, `ts` → `obsidian-dev` |
 | `-p` / `--project` | *(dir name)* | Docker Compose **project name** — labels this stack instance so you can run several in parallel (`bibtex-1`, …) |
 | `-H` / `--host-net` | **off** | Opt-in host networking for the stack service (see below) |
+
+## Storage location (`containerdfix`)
+
+Docker has two storage settings that are easy to confuse. `data-root` (set in
+`/etc/docker/daemon.json`) holds volumes, networks, and daemon metadata.
+containerd's `root` (set in `/etc/containerd/config.toml`) holds image layers
+and container snapshots whenever the daemon uses the containerd image store —
+the default since Docker v28, shown as `driver-type: io.containerd.snapshotter.v1`
+in `docker info`.
+
+The consequence: on a machine with a small root partition, setting `data-root`
+alone moves the smaller half. Image layers keep accumulating under
+`/var/lib/containerd` until the root partition fills, and neither `docker info`
+nor `docker system df` reports them as Docker's own.
+
+```bash
+# Report only: where both roots point, how big containerd's is, and whether it
+# sits on the root partition. Safe to run any time; changes nothing.
+dokwerker containerdfix
+
+# Carry out the move. Needs root.
+sudo dokwerker containerdfix --apply --root /CONDA/containerd
+```
+
+`--apply` stops docker and containerd, writes the config, adds a
+`RequiresMountsFor` systemd drop-in so containerd never starts before the target
+filesystem is mounted, renames the old store aside with a timestamp, and starts
+everything back up.
+
+Images are **not** copied — rebuild them with `dokwerker up`. Volumes and
+networks live under `data-root` and are untouched. The old store is renamed, not
+deleted, so the change is reversible until you remove it yourself; the command
+prints both the `rm` to reclaim the space and how to revert.
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--root` | `/CONDA/containerd` | Target directory for containerd's root |
+| `--apply` | off | Carry out the move; without it, report and print the plan |
+| `--force` | off | Allow a target on the root partition (skips the mounted-filesystem check) |
 
 ## Host networking (`--host-net` / `-H`)
 

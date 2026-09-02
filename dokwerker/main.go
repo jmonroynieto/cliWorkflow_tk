@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"text/tabwriter"
+	"time"
 
 	"github.com/pydpll/errorutils"
 	"github.com/urfave/cli/v3"
@@ -781,6 +783,27 @@ func main() {
 				Action: DownAction,
 			},
 			{
+				Name:    "containerdfix",
+				Aliases: []string{"cdfix"},
+				Usage:   "Report where the image store lives; with --apply, move containerd's root off the root partition",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "root",
+						Value: "/CONDA/containerd",
+						Usage: "Target directory for containerd's root, on a filesystem other than /",
+					},
+					&cli.BoolFlag{
+						Name:  "apply",
+						Usage: "Carry out the move (requires root); without it, only report and print the plan",
+					},
+					&cli.BoolFlag{
+						Name:  "force",
+						Usage: "Allow a target that is on the root partition (skips the mounted-filesystem check)",
+					},
+				},
+				Action: ContainerdfixAction,
+			},
+			{
 				Name:    "fresh",
 				Aliases: []string{"reset"},
 				Usage:   "Initialize (if needed), bring up the build, and jump right into the shell",
@@ -806,4 +829,282 @@ func main() {
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		errorutils.ExitOnFail(err)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// containerdfix: keep the image store off the root partition.
+//
+// Docker's data-root and containerd's root are two different settings. Under
+// the containerd snapshotter (Docker's default image store since v28), layers
+// and snapshots live under containerd's root, so pointing data-root at a big
+// partition moves volumes and metadata but leaves the bulk behind.
+// ---------------------------------------------------------------------------
+
+const (
+	containerdConfigPath  = "/etc/containerd/config.toml"
+	containerdDropInDir   = "/etc/systemd/system/containerd.service.d"
+	containerdDropInName  = "dokwerker-mount.conf"
+	defaultContainerdRoot = "/var/lib/containerd"
+	containerdConfigVer   = 3
+)
+
+// containerdState is where container data actually lives right now.
+type containerdState struct {
+	root          string // root= from config.toml, or containerd's built-in default
+	configExists  bool
+	rootExists    bool
+	rootSize      string // human readable; "" when it could not be measured
+	rootOnSlash   bool   // root shares a filesystem with /
+	dockerRootDir string
+	storageDriver string
+	driverType    string
+}
+
+// devOf returns the device id backing a path, for same-filesystem checks.
+func devOf(path string) (uint64, error) {
+	var st syscall.Stat_t
+	if err := syscall.Stat(path, &st); err != nil {
+		return 0, err
+	}
+	return uint64(st.Dev), nil
+}
+
+// containerdRootFromConfig reads root= from the top-level table of config.toml.
+// Keys inside [plugins.*] tables are ignored: only the global root matters here.
+func containerdRootFromConfig() (root string, exists bool, err error) {
+	return parseContainerdRoot(containerdConfigPath)
+}
+
+func parseContainerdRoot(path string) (root string, exists bool, err error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return defaultContainerdRoot, false, nil
+		}
+		return "", false, err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "[") {
+			break // past the top-level table
+		}
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		key, val, ok := strings.Cut(line, "=")
+		if !ok || strings.TrimSpace(key) != "root" {
+			continue
+		}
+		return strings.Trim(strings.TrimSpace(val), `"`), true, nil
+	}
+	return defaultContainerdRoot, true, nil
+}
+
+// dockerInfoField queries the daemon, staying silent when it is not running.
+func dockerInfoField(ctx context.Context, tmpl string) string {
+	cmd := exec.CommandContext(ctx, "docker", "info", "--format", tmpl)
+	cmd.Env = dockerEnv()
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// dirSizeHuman shells out to du, staying on one filesystem. Without root it
+// undercounts, since containerd's store is not world readable.
+func dirSizeHuman(ctx context.Context, path string) string {
+	cmd := exec.CommandContext(ctx, "du", "-shx", path)
+	out, err := cmd.Output()
+	if err != nil && len(out) == 0 {
+		return ""
+	}
+	fields := strings.Fields(string(out))
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[0]
+}
+
+func gatherContainerdState(ctx context.Context) (containerdState, error) {
+	var st containerdState
+	root, exists, err := containerdRootFromConfig()
+	if err != nil {
+		return st, fmt.Errorf("read %s: %w", containerdConfigPath, err)
+	}
+	st.root, st.configExists = root, exists
+
+	if _, err := os.Stat(st.root); err == nil {
+		st.rootExists = true
+		st.rootSize = dirSizeHuman(ctx, st.root)
+		if rdev, err := devOf("/"); err == nil {
+			if tdev, err := devOf(st.root); err == nil {
+				st.rootOnSlash = tdev == rdev
+			}
+		}
+	}
+
+	st.dockerRootDir = dockerInfoField(ctx, "{{.DockerRootDir}}")
+	st.storageDriver = dockerInfoField(ctx, "{{.Driver}}")
+	st.driverType = dockerInfoField(ctx, "{{range .DriverStatus}}{{if eq (index . 0) \"driver-type\"}}{{index . 1}}{{end}}{{end}}")
+	return st, nil
+}
+
+// usesContainerdSnapshotter reports whether image layers follow containerd's
+// root rather than Docker's data-root.
+func (st containerdState) usesContainerdSnapshotter() bool {
+	return strings.Contains(st.driverType, "snapshotter")
+}
+
+func (st containerdState) report(w io.Writer) {
+	tw := tabwriter.NewWriter(w, 0, 0, 3, ' ', 0)
+	fmt.Fprintln(tw, "SETTING\tVALUE")
+	fmt.Fprintf(tw, "containerd root\t%s\n", st.root)
+	src := "containerd built-in default (no config file)"
+	if st.configExists {
+		src = containerdConfigPath
+	}
+	fmt.Fprintf(tw, "  from\t%s\n", src)
+	fmt.Fprintf(tw, "  size\t%s\n", orDash(st.rootSize))
+	fmt.Fprintf(tw, "  on root partition\t%t\n", st.rootOnSlash)
+	fmt.Fprintf(tw, "docker data-root\t%s\n", orDash(st.dockerRootDir))
+	fmt.Fprintf(tw, "storage driver\t%s\n", orDash(st.storageDriver))
+	fmt.Fprintf(tw, "  driver type\t%s\n", orDash(st.driverType))
+	tw.Flush()
+}
+
+// diagnose explains, in one line, whether the current layout leaks onto /.
+func (st containerdState) diagnose() string {
+	switch {
+	case !st.rootOnSlash:
+		return "OK: containerd's root is not on the root partition."
+	case st.usesContainerdSnapshotter():
+		return "PROBLEM: the containerd snapshotter stores image layers under containerd's root,\n" +
+			"which is on the root partition. data-root does not cover them."
+	default:
+		return "NOTE: containerd's root is on the root partition, but this daemon does not use\n" +
+			"the containerd snapshotter, so image layers follow data-root instead."
+	}
+}
+
+func writeRootIfMissing(path string, content []byte, perm os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, content, perm)
+}
+
+// ContainerdfixAction reports where the image store lives and, with --apply,
+// repoints containerd at a roomier filesystem. The existing store is renamed
+// aside rather than deleted, so the change stays reversible.
+func ContainerdfixAction(ctx context.Context, c *cli.Command) error {
+	st, err := gatherContainerdState(ctx)
+	if err != nil {
+		return err
+	}
+	st.report(os.Stdout)
+	fmt.Println()
+	fmt.Println(st.diagnose())
+
+	target := filepath.Clean(c.String("root"))
+	if !c.Bool("apply") {
+		fmt.Println()
+		if !st.rootOnSlash && st.root == target {
+			fmt.Println("Nothing to do.")
+			return nil
+		}
+		fmt.Printf("Plan (re-run with --apply to carry it out, as root):\n")
+		fmt.Printf("  1. stop docker.socket, docker.service, containerd\n")
+		fmt.Printf("  2. write %s with root = %q\n", containerdConfigPath, target)
+		fmt.Printf("  3. add %s/%s so containerd waits for the mount\n", containerdDropInDir, containerdDropInName)
+		fmt.Printf("  4. rename %s aside (kept, not deleted)\n", st.root)
+		fmt.Printf("  5. start containerd and docker\n")
+		fmt.Println()
+		fmt.Println("Images are not copied: rebuild them with 'dokwerker up'. Volumes and networks")
+		fmt.Println("live under docker's data-root and are untouched.")
+		return nil
+	}
+
+	if os.Geteuid() != 0 {
+		return fmt.Errorf("--apply changes system config; re-run as root: sudo dokwerker containerdfix --apply --root %s", target)
+	}
+	if target == defaultContainerdRoot {
+		return fmt.Errorf("--root %s is the location being moved away from", target)
+	}
+
+	// The point of the exercise is landing on a different filesystem. Refuse a
+	// target on / unless explicitly overridden.
+	parent := filepath.Dir(target)
+	if rdev, err := devOf("/"); err == nil {
+		if tdev, err := devOf(parent); err == nil && tdev == rdev && !c.Bool("force") {
+			return fmt.Errorf("%s is on the root partition (is the target filesystem mounted?); pass --force to proceed anyway", parent)
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("Stopping docker and containerd...")
+	if err := runCmd(ctx, "systemctl", "stop", "docker.socket", "docker.service", "containerd"); err != nil {
+		return fmt.Errorf("stop services: %w", err)
+	}
+
+	if st.configExists {
+		backup := containerdConfigPath + ".dokwerker.bak"
+		if err := runCmdQuiet(ctx, "cp", "-a", containerdConfigPath, backup); err != nil {
+			return fmt.Errorf("back up existing config: %w", err)
+		}
+		fmt.Printf("Existing config saved to %s\n", backup)
+	}
+
+	cfg := fmt.Sprintf("version = %d\nroot = %q\n", containerdConfigVer, target)
+	if err := writeRootIfMissing(containerdConfigPath, []byte(cfg), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", containerdConfigPath, err)
+	}
+	fmt.Printf("Wrote %s (root = %s)\n", containerdConfigPath, target)
+
+	if err := os.MkdirAll(target, 0o711); err != nil {
+		return fmt.Errorf("create %s: %w", target, err)
+	}
+
+	// Without this, a boot that races the mount puts the store back on /.
+	dropIn := filepath.Join(containerdDropInDir, containerdDropInName)
+	unit := fmt.Sprintf("[Unit]\nRequiresMountsFor=%s\n", parent)
+	if err := writeRootIfMissing(dropIn, []byte(unit), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", dropIn, err)
+	}
+	fmt.Printf("Wrote %s (containerd now waits for %s)\n", dropIn, parent)
+
+	if err := runCmd(ctx, "systemctl", "daemon-reload"); err != nil {
+		return fmt.Errorf("daemon-reload: %w", err)
+	}
+
+	var stashed string
+	if st.rootExists && st.root != target {
+		stashed = fmt.Sprintf("%s.old.%s", st.root, time.Now().Format("20060102-150405"))
+		if err := os.Rename(st.root, stashed); err != nil {
+			return fmt.Errorf("move old store aside: %w", err)
+		}
+		fmt.Printf("Old store renamed to %s (%s, still using disk)\n", stashed, orDash(st.rootSize))
+	}
+
+	fmt.Println("Starting containerd and docker...")
+	if err := runCmd(ctx, "systemctl", "start", "containerd", "docker"); err != nil {
+		return fmt.Errorf("start services: %w (check: journalctl -u containerd -n 50)", err)
+	}
+
+	after, err := gatherContainerdState(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Println()
+	after.report(os.Stdout)
+	fmt.Println()
+	fmt.Println(after.diagnose())
+
+	if stashed != "" {
+		fmt.Println()
+		fmt.Println("Rebuild your stacks with 'dokwerker up', confirm they work, then reclaim space:")
+		fmt.Printf("  sudo rm -rf %s\n", stashed)
+		fmt.Println("To revert instead: stop the services, remove the config, and rename it back.")
+	}
+	return nil
 }
