@@ -28,6 +28,7 @@ use (
 	./sdl
 	./shFossils
 	./talaria
+	./logSync
 	./watchAdir
 	./xwin
 	./zustellen

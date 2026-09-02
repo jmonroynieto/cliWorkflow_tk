@@ -1,2 +1,5 @@
 **/.DS_Store
 build
+
+# Device test records device serial, a home directory and more details about the copied files.
+logSync/docs/device-test-*.md
