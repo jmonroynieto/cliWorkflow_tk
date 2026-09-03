@@ -16,21 +16,6 @@ import (
 // hotkeys, plugin code and per-plugin settings.
 const obsidianDirName = ".obsidian"
 
-// withObsidianFlag opts the vault's configuration directory into a run.
-//
-// It is off by default because the base configuration the phone already
-// has is enough for the work that gets done there, and because syncing it
-// costs more than it returns. Obsidian rewrites several of those files
-// every time it starts, so they become merge candidates constantly. They
-// are JSON, and a union merge of JSON without a baseline does not produce
-// JSON — it produces duplicated keys and a file the plugin cannot load.
-// And the directory is most of the vault by file count: plugin code,
-// fonts, themes.
-var withObsidianFlag = &cli.BoolFlag{
-	Name:  "with-obsidian",
-	Usage: "also look at " + obsidianDirName + "/ — differences are shown for review, never written",
-}
-
 // bubbleFlag is the sanctioned way for a configuration change made on the
 // phone to reach this machine: name the file, and only that file moves.
 var bubbleFlag = &cli.StringSliceFlag{
@@ -49,10 +34,22 @@ func isObsidianPath(rel string) bool {
 	return false
 }
 
-// effectiveExcludes is the configured exclusions plus, unless this run
-// asked otherwise, the vault configuration directory.
-func effectiveExcludes(cfg *Config, withObsidian bool) []string {
-	if withObsidian {
+// effectiveExcludes is the configured exclusions plus the vault
+// configuration directory, which no sync mode walks.
+//
+// The base configuration the phone already has is enough for the work that
+// gets done there, and syncing it costs more than it returns. Obsidian
+// rewrites several of those files every time it starts, so they would be
+// merge candidates constantly. They are JSON, and a union merge of JSON
+// without a baseline does not produce JSON — it produces duplicated keys
+// and a file the plugin cannot load. The directory is also most of the
+// vault by file count: plugin code, fonts, themes.
+//
+// stageObsidian is set only by a --bubble naming a path inside it, which
+// has to be staged to be copied. Whole-directory moves are `configsync`'s
+// business, and it hands the job to adb rather than doing it here.
+func effectiveExcludes(cfg *Config, stageObsidian bool) []string {
+	if stageObsidian {
 		return cfg.ExcludePaths
 	}
 	out := make([]string, 0, len(cfg.ExcludePaths)+1)
@@ -157,7 +154,7 @@ func runBubble(s *session, rels []string, commit bool) error {
 		src := filepath.Join(s.stageDir, filepath.FromSlash(rel))
 		dst := filepath.Join(s.localDir, filepath.FromSlash(rel))
 		if _, err := os.Stat(src); err != nil {
-			return fmt.Errorf("--bubble %s: not on the phone under %s (run with --with-obsidian to see what is): %w", rel, s.remoteDir, err)
+			return fmt.Errorf("--bubble %s: not on the phone under %s: %w", rel, s.remoteDir, err)
 		}
 		if !commit {
 			fmt.Printf("would bubble up (phone wins): %s\n", rel)

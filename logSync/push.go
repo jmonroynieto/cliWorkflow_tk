@@ -18,7 +18,7 @@ import (
 var pushCommand = &cli.Command{
 	Name:  "push",
 	Usage: "one-way overwrite: local files win at every shared path",
-	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag, withObsidianFlag, pruneFlag},
+	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag, pruneFlag},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		return runOneWay(cmd, oneWayDirectionLocalToPhone)
 	},
@@ -31,7 +31,7 @@ var pushCommand = &cli.Command{
 var pullCommand = &cli.Command{
 	Name:  "pull",
 	Usage: "one-way overwrite: phone files win at every shared path",
-	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag, withObsidianFlag},
+	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		return runOneWay(cmd, oneWayDirectionPhoneToLocal)
 	},
@@ -53,14 +53,11 @@ func runOneWay(cmd *cli.Command, dir oneWayDirection) error {
 	}
 	defer s.close()
 
-	withObsidian := cmd.Bool("with-obsidian")
-	c, err := synctree.Classify(s.localDir, s.stageDir, s.cfg.ignorePatterns(), effectiveExcludes(s.cfg, withObsidian), cmd.Bool("with-symlinks"))
+	c, err := synctree.Classify(s.localDir, s.stageDir, s.cfg.ignorePatterns(), effectiveExcludes(s.cfg, false), cmd.Bool("with-symlinks"))
 	if err != nil {
 		return err
 	}
 	c = s.report(c)
-	c, cfgDiffer, cfgLocalOnly, cfgPhoneOnly := splitObsidian(c)
-	defer reportObsidian(s, cfgDiffer, cfgLocalOnly, cfgPhoneOnly, nil)
 	s.pruneSnapshots(c, commit)
 	localSymlinks := make(map[string]struct{}, len(c.LocalSymlinks))
 	for _, rel := range c.LocalSymlinks {

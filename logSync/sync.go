@@ -66,7 +66,7 @@ var pruneFlag = &cli.BoolFlag{
 var syncCommand = &cli.Command{
 	Name:  "sync",
 	Usage: "bidirectional sync: merge differing files, copy missing ones both ways",
-	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag, withObsidianFlag, bubbleFlag, pruneFlag},
+	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag, bubbleFlag, pruneFlag},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		return runSync(cmd)
 	},
@@ -83,11 +83,8 @@ func runSync(cmd *cli.Command) error {
 
 	bubble := cmd.StringSlice("bubble")
 	// A named --bubble path inside the configuration directory has to be
-	// staged to be copied, whether or not this run asked to look at the
-	// rest of it.
-	withObsidian := cmd.Bool("with-obsidian") || bubbleNeedsObsidian(bubble)
-
-	c, err := synctree.Classify(s.localDir, s.stageDir, s.cfg.ignorePatterns(), effectiveExcludes(s.cfg, withObsidian), cmd.Bool("with-symlinks"))
+	// staged to be copied; nothing else about a run reaches in there.
+	c, err := synctree.Classify(s.localDir, s.stageDir, s.cfg.ignorePatterns(), effectiveExcludes(s.cfg, bubbleNeedsObsidian(bubble)), cmd.Bool("with-symlinks"))
 	if err != nil {
 		return err
 	}

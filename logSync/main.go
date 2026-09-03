@@ -46,6 +46,7 @@ var app = &cli.Command{
 		pushCommand,
 		pullCommand,
 		notesyncCommand,
+		configsyncCommand,
 		snapshotCommand,
 	},
 }

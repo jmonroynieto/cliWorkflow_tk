@@ -22,7 +22,7 @@ import (
 var notesyncCommand = &cli.Command{
 	Name:  "notesync",
 	Usage: "one-way whole-vault push (local wins, no merge) — see vault_local_dir/vault_remote_dir",
-	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag, withObsidianFlag},
+	Flags: []cli.Flag{previewFlag, commitFlag, withSymlinksFlag},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		return runNotesync(cmd)
 	},
@@ -37,14 +37,11 @@ func runNotesync(cmd *cli.Command) error {
 	}
 	defer s.close()
 
-	withObsidian := cmd.Bool("with-obsidian")
-	c, err := synctree.Classify(s.localDir, s.stageDir, s.cfg.ignorePatterns(), effectiveExcludes(s.cfg, withObsidian), cmd.Bool("with-symlinks"))
+	c, err := synctree.Classify(s.localDir, s.stageDir, s.cfg.ignorePatterns(), effectiveExcludes(s.cfg, false), cmd.Bool("with-symlinks"))
 	if err != nil {
 		return err
 	}
 	c = s.report(c)
-	c, cfgDiffer, cfgLocalOnly, cfgPhoneOnly := splitObsidian(c)
-	defer reportObsidian(s, cfgDiffer, cfgLocalOnly, cfgPhoneOnly, nil)
 	s.pruneSnapshots(c, commit)
 
 	toSend := append(append([]string{}, c.Differ...), c.LocalOnly...)
