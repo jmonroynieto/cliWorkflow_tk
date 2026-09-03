@@ -14,7 +14,7 @@ import (
 
 var (
 	Version    string
-	Revision   = ".0"
+	Revision   = "0"
 	CommitId   string
 	ignorable  []*regexp.Regexp
 	workersNum int64
@@ -27,7 +27,7 @@ func main() {
 		Name:    "indexFiles",
 		Usage:   "recursive, parallel sha1sum for files and symlinks in directory",
 		Flags:   appFlags,
-		Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+		Version: fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			run(cmd.String("examine"), cmd.String("output"))
 			return nil

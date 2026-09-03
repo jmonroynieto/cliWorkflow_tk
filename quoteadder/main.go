@@ -19,10 +19,10 @@ var global []byte
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
-var versionString = fmt.Sprintf("quoteadder version %s%s (%s)", Version, Revision, CommitId)
+var versionString = fmt.Sprintf("quoteadder version %s.%s (%s)", Version, Revision, CommitId)
 
 func main() {
 	// Check that the user has provided a filename.

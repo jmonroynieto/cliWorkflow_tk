@@ -1,6 +1,6 @@
 GIT_TAG := $(shell git rev-parse --short HEAD)
 build_dir := build/
-TOOLS := ansCRUBi ansible barker calshow cedula chaptor cw describeFiles dripC fickleFinger filterMyCal indexFiles kompti kwiqExt mdMake megalophobia quoteadder shFossils watchAdir xwin zustellen
+TOOLS := ansCRUBi ansible avaro barker calshow cedula chaptor cueLine cw describeFiles dokwerker dripC fickleFinger gromula filterMyCal indexFiles janus kompti kwiqExt lineExplorer logSync lotajxo mdMake megalophobia quoteadder sdl shFossils talaria/cmd/talaria talaria/cmd/talariad watchAdir xwin zustellen
 install_dir := /home/pollo/Local/bin/
 
 .PHONY: build
@@ -8,8 +8,9 @@ build:
 		@echo "current GIT_TAG is $(GIT_TAG)" 
 		@mkdir -p $(build_dir)
 		@for tool in $(TOOLS); do\
-			echo "--- Building $$tool ---" ;\
-			go build --ldflags="-X main.CommitId=$(GIT_TAG) -X main.Version=1.4 -s -w" -o $(build_dir)$$tool ./$$tool ; \
+			name=$$(basename $$tool); \
+			echo "--- Building $$name ---" ;\
+			go build --ldflags="-X main.CommitId=$(GIT_TAG) -X main.Version=1.8 -s -w" -o $(build_dir)$$name ./$$tool ; \
 		done
 
 install_dir := /home/pollo/Local/bin/
@@ -18,7 +19,19 @@ install_dir := /home/pollo/Local/bin/
 install:
 		@mkdir -p $(install_dir)
 		@for tool in $(TOOLS) ; do \
-			echo "--- Installing $$tool ---" ;\
-			install -p $(build_dir)$$tool $(install_dir)/$$tool && rm $(build_dir)$$tool || echo "=== Failed installing $$tool ==="; \
+			name=$$(basename $$tool) ; \
+			echo "--- Installing $$name ---" ;\
+			install -p $(build_dir)$$name $(install_dir)/$$name && rm $(build_dir)$$name || echo "=== Failed installing $$name ===" ; \
 		done
 		@rm -d ${build_dir}
+
+
+UNITDIR ?= $(HOME)/.config/systemd/user
+
+.PHONY: install-systemd
+install-systemd:
+	install -d $(UNITDIR)
+	install -m 644 talaria/tools/systemd-services/talaria-maintain.service $(UNITDIR)/                                       
+	install -m 644 talaria/tools/systemd-services/talaria-maintain.timer $(UNITDIR)/                                         
+	@echo "systemctl --user daemon-reload"                                                                                   
+	@echo "systemctl --user enable --now talaria-maintain.timer"

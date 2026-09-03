@@ -1,0 +1,13 @@
+[Unit]
+Description=Run talaria maintain at boot and on the hour
+
+[Timer]
+# Catch up soon after login/boot (same idea as komptidompti-detect).
+OnBootSec=1min
+# Hourly status check + GC — registry vs disk and age-based cleanup.
+OnCalendar=hourly
+# If the machine was off when a run was due, fire at next boot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

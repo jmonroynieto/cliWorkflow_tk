@@ -1,0 +1,7 @@
+bin/
+build/
+Docker*
+docker*
+*.db
+*.db-*
+workspaces.json

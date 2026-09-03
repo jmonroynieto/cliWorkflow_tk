@@ -14,7 +14,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -27,7 +27,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "-v", "--version":
-		fmt.Printf("calshow version %s%s (%s)\n", Version, Revision, CommitId)
+		fmt.Printf("calshow version %s.%s (%s)\n", Version, Revision, CommitId)
 		return
 	case "-h", "--help":
 		fmt.Println("Usage: calshow <csv_file_name>")

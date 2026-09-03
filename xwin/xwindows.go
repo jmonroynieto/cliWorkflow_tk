@@ -20,7 +20,7 @@ import (
 
 var (
 	Version  string
-	Revision = ".0"
+	Revision = "0"
 	CommitId string
 )
 
@@ -89,7 +89,7 @@ func main() {
 	err := (&cli.Command{
 		Name:    "xwindows",
 		Usage:   "list open windows",
-		Version: fmt.Sprintf("%s%s (%s)", Version, Revision, CommitId),
+		Version: fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 		Action:  listOpenWindows,
 	}).Run(context.Background(), os.Args)
 	errorutils.ExitOnFail(err)

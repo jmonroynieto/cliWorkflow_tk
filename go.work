@@ -1,24 +1,34 @@
-go 1.24.4
+go 1.26.5
 
 use (
 	./ansCRUBi
 	./ansible
+	./avaro
 	./barker
 	./calshow
 	./cedula
 	./chaptor
+	./cueLine
 	./cw
 	./describeFiles
+	./dokwerker
 	./dripC
 	./fickleFinger
 	./filterMyCal
+	./gromula
 	./indexFiles
+	./janus
 	./kompti
 	./kwiqExt
+	./lineExplorer
+	./logSync
+	./lotajxo
 	./mdMake
 	./megalophobia
 	./quoteadder
+	./sdl
 	./shFossils
+	./talaria
 	./watchAdir
 	./xwin
 	./zustellen
