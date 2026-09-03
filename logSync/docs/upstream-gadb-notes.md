@@ -42,12 +42,13 @@ the socket read/write calls in `transport.go` and `syncTransport`.
 no exit status. This is a long-standing, near-identical request already
 filed against the sibling library `goadb` ("Support shell out/err splitting
 and exit codes") — it's an ecosystem-wide gap in the Go adb space, not
-specific to `gadb`. Not needed by logSync today (we don't run remote shell
-commands in the sync path at all — that's the point of using `sync:`
-directly instead of `adb shell tar ...`), but worth fixing once, upstream,
-rather than every consumer inventing its own workaround.
+specific to `gadb`. Not needed in the sync path (that's the point of using
+`sync:` directly instead of `adb shell tar ...`), but `primeMobile` runs
+`mkdir -p` remotely and has to infer failure from text on stdout — see
+`upstream-gadb-contributions.md` for how that plays out. Worth fixing once,
+upstream, rather than every consumer inventing its own workaround.
 
-## 4. `DeviceFileInfo.IsDir()` may be testing the wrong bits
+## 4. `DeviceFileInfo.Mode` is a POSIX `st_mode` typed as `os.FileMode`
 
 ```go
 func (info DeviceFileInfo) IsDir() bool {
@@ -62,10 +63,13 @@ positions. If the raw wire `mode` `uint32` (a real POSIX `st_mode`) is being
 stored directly into a field typed `os.FileMode` without translating POSIX
 bits into Go's `os.FileMode` bits first, `IsDir()` is checking the wrong
 thing for at least some values — which lines up with `gadb`'s own open issue,
-**"IsDir is not work well."** Worth confirming against a real device (some
-mode values may accidentally line up and pass) and, if confirmed, fixing by
-converting the raw POSIX mode into an `os.FileMode` explicitly (or by
-exposing the raw `uint32` alongside a correctly-derived `IsDir()`/`IsRegular()`).
+**"IsDir is not work well."** **Confirmed against a real device on 2026-09-02, and the diagnosis above is
+wrong**: `IsDir()` itself is right, because the raw `st_mode` is stored
+unchanged and POSIX bit 14 really is set (a directory lists as `042770`).
+What breaks is every use of the field *as* an `os.FileMode` — `String()`
+renders a directory as a regular file, and `info.Mode.IsDir()` is false for
+everything. The defect is the field's type, not the bit test. See
+`upstream-gadb-contributions.md`.
 
 ## 5. `DeviceFileInfo.Size` is `uint32` (low priority)
 
@@ -77,8 +81,13 @@ using `gadb` for larger transfers.
 ---
 
 None of the above have been filed as GitHub issues yet — intentionally left
-for the user to file (or not) under their own account, since these are
-educated guesses from reading the code and cross-referencing gadb's and
-goadb's own issue trackers, not confirmed against a live device from this
-machine (see the main plan's Phase 0 status: no device was attached/authorized
-while logSync was being built).
+for the user to file (or not) under their own account.
+
+Items 1-3 and 5 remain read-the-code inferences, cross-referenced against
+gadb's and goadb's own issue trackers. Item 4 was one too until 2026-09-02,
+when a device was finally attached and turned it into a measurement — and
+into a different bug than the one guessed at. Treat the rest with the same
+suspicion until something similar happens to them.
+
+`upstream-gadb-contributions.md` carries what the device has confirmed so
+far, and the workarounds in `internal/adbx` that each gap produced.

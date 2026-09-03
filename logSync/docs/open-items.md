@@ -106,10 +106,17 @@ the right policy is part of the conflict decision above.
 
 ## The vault configuration directory
 
-`.obsidian/` is excluded unless `--with-obsidian` is passed, and even then
-nothing inside it is written by an ordinary run: differences are printed
-with a diff for review. The one sanctioned write is `--bubble <path>`,
-which copies a named file from the phone over the local copy.
+`.obsidian/` is excluded from every sync mode. The one sanctioned write is
+`--bubble <path>` on `sync`, which copies a named file from the phone over
+the local copy, showing the diff first. Moving the whole directory is
+`configsync`, which prints an `adb push`/`adb pull` line and runs nothing —
+the operation needs no judgment adb lacks, only a decision about direction
+and about Obsidian not being open at the time.
+
+An earlier `--with-obsidian` flag staged the directory and printed a diff
+for review without ever writing. It was removed on 2026-09-02: reviewing
+config differences turned out not to be a thing that got done, and the flag
+read as an opt-in to syncing the directory when no such opt-in existed.
 
 This is deliberate rather than provisional. Obsidian rewrites several of
 those files every time it starts, so they become merge candidates

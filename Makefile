@@ -10,7 +10,7 @@ build:
 		@for tool in $(TOOLS); do\
 			name=$$(basename $$tool); \
 			echo "--- Building $$name ---" ;\
-			go build --ldflags="-X main.CommitId=$(GIT_TAG) -X main.Version=1.7 -s -w" -o $(build_dir)$$name ./$$tool ; \
+			go build --ldflags="-X main.CommitId=$(GIT_TAG) -X main.Version=1.8 -s -w" -o $(build_dir)$$name ./$$tool ; \
 		done
 
 install_dir := /home/pollo/Local/bin/
