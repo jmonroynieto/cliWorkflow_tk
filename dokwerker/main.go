@@ -15,13 +15,38 @@ import (
 	"time"
 
 	"github.com/pydpll/errorutils"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v3"
 )
+
+// Version and CommitId are set at link time by the toolkit Makefile:
+//
+//	-X main.Version=1.8 -X main.CommitId=$(GIT_TAG)
+//
+// Revision is this tool's own counter, kept here in source and reset to 0
+// when the toolkit's version is bumped.
+var (
+	Version  string
+	Revision = "0"
+	CommitId string
+)
+
+var debugFlag = &cli.BoolFlag{
+	Name:    "debug",
+	Aliases: []string{"D"},
+	Usage:   "activates debugging messages",
+	Action: func(ctx context.Context, cmd *cli.Command, shouldDebug bool) error {
+		if shouldDebug {
+			logrus.SetLevel(logrus.DebugLevel)
+		}
+		return nil
+	},
+}
 
 func getBoilerplateDir() (string, error) {
 	skriptujo := os.Getenv("scriptLoc")
 	if skriptujo == "" {
-		return "", fmt.Errorf("environment variable is not set for scriptLoc")
+		return "", errorutils.NewReport("environment variable scriptLoc is not set", "adVXiuLxCXw")
 	}
 	return filepath.Join(skriptujo, "boilerplate", "docker"), nil
 }
@@ -36,6 +61,7 @@ func dockerEnv() []string {
 
 // runCmd executes a command with stdin/stdout/stderr attached (interactive-safe).
 func runCmd(ctx context.Context, name string, args ...string) error {
+	logrus.Debugf("runCmd: %s %s", name, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -47,6 +73,7 @@ func runCmd(ctx context.Context, name string, args ...string) error {
 // runCmdQuiet runs a non-interactive command without attaching stdin
 // (safe to call concurrently; used by netfix workers).
 func runCmdQuiet(ctx context.Context, name string, args ...string) error {
+	logrus.Debugf("runCmdQuiet: %s %s", name, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -56,6 +83,7 @@ func runCmdQuiet(ctx context.Context, name string, args ...string) error {
 
 // runCmdOutput captures stdout (stderr still inherited for diagnostics).
 func runCmdOutput(ctx context.Context, name string, args ...string) (string, error) {
+	logrus.Debugf("runCmdOutput: %s %s", name, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, name, args...)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -148,11 +176,11 @@ func detectService(ctx context.Context) (string, error) {
 	services := strings.Fields(out)
 	switch len(services) {
 	case 0:
-		return "", fmt.Errorf("no services found in docker-compose.yml")
+		return "", errorutils.NewReport("no services found in docker-compose.yml", "MZ5ADVY0e9N")
 	case 1:
 		return services[0], nil
 	default:
-		return "", fmt.Errorf("multiple services found in docker-compose.yml (%s); dokwerker expects a single dev service", strings.Join(services, ", "))
+		return "", errorutils.NewReport(fmt.Sprintf("multiple services found in docker-compose.yml (%s); dokwerker expects a single dev service", strings.Join(services, ", ")), "FVMdHQWxoq8")
 	}
 }
 
@@ -177,7 +205,7 @@ func InitAction(ctx context.Context, c *cli.Command) error {
 		srcCompose = filepath.Join(boilerplateDir, "rust-docker-compose.yml")
 		srcDockerfile = filepath.Join(boilerplateDir, "rust-Dockerfile")
 	default:
-		return fmt.Errorf("unsupported stack: %s", stack)
+		return errorutils.NewReport(fmt.Sprintf("unsupported stack: %s", stack), "PjpmkDaVbu7")
 	}
 
 	if err := copyFile(srcCompose, "docker-compose.yml"); err != nil {
@@ -243,7 +271,7 @@ func serviceContainerID(ctx context.Context, cfg composeCfg, service string) (st
 		}
 	}
 	if out == "" {
-		return "", fmt.Errorf("no container found for service %q", service)
+		return "", errorutils.NewReport(fmt.Sprintf("no container found for service %q", service), "nT2SdCKH877")
 	}
 	return strings.Fields(out)[0], nil
 }
@@ -425,7 +453,7 @@ func netfixContainers(ctx context.Context, ids []string, scope string) error {
 	}
 	fmt.Println(".")
 	if len(failures) > 0 {
-		return fmt.Errorf("netfix completed with %d error(s):\n  %s", len(failures), strings.Join(failures, "\n  "))
+		return errorutils.NewReport(fmt.Sprintf("netfix completed with %d error(s):\n  %s", len(failures), strings.Join(failures, "\n  ")), "nZCR7lugc2y")
 	}
 	return nil
 }
@@ -718,117 +746,118 @@ func DownAction(ctx context.Context, c *cli.Command) error {
 	return runCmd(ctx, "docker", args...)
 }
 
-func main() {
-	cmd := &cli.Command{
-		Name:  "dokwerker",
-		Usage: "Generalized workflow manager for Go, TypeScript, and Rust Docker development",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:    "stack",
-				Aliases: []string{"s"},
-				Value:   "go",
-				Usage:   "Boilerplate to copy on 'init'/'fresh' (go, ts, or rust); other commands detect the service from docker-compose.yml",
+var app = &cli.Command{
+	Name:    "dokwerker",
+	Usage:   "Generalized workflow manager for Go, TypeScript, and Rust Docker development",
+	Version: fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
+	Flags: []cli.Flag{
+		debugFlag,
+		&cli.StringFlag{
+			Name:    "stack",
+			Aliases: []string{"s"},
+			Value:   "go",
+			Usage:   "Boilerplate to copy on 'init'/'fresh' (go, ts, or rust); other commands detect the service from docker-compose.yml",
+		},
+		&cli.StringFlag{
+			Name:    "project",
+			Aliases: []string{"p"},
+			Value:   "",
+			Usage:   "Optional Docker Compose project name (e.g. bibtex-1)",
+		},
+		&cli.BoolFlag{
+			Name:    "host-net",
+			Aliases: []string{"H"},
+			Value:   false,
+			Usage:   "Opt-in: run the stack service with network_mode=host via a temp compose override (Linux; does not modify docker-compose.yml)",
+		},
+	},
+	Commands: []*cli.Command{
+		{
+			Name:   "init",
+			Usage:  "Copy boilerplate Docker files into the current directory",
+			Action: InitAction,
+		},
+		{
+			Name:   "up",
+			Usage:  "Build and launch the Docker Compose stack in the background",
+			Action: UpAction,
+		},
+		{
+			Name:   "shell",
+			Usage:  "Exec into the dev container (auto-starts if down; recovers network on failure)",
+			Action: ShellAction,
+		},
+		{
+			Name:    "netfix",
+			Aliases: []string{"reconnect", "fixnet"},
+			Usage:   "Force-reconnect running containers to their Docker networks (fast sleep/VPN recovery)",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "service-only",
+					Aliases: []string{"S"},
+					Usage:   "Only reconnect the service detected from the current directory's docker-compose.yml, not every container",
+				},
 			},
-			&cli.StringFlag{
-				Name:    "project",
-				Aliases: []string{"p"},
-				Value:   "",
-				Usage:   "Optional Docker Compose project name (e.g. bibtex-1)",
+			Action: NetfixAction,
+		},
+		{
+			Name:    "status",
+			Aliases: []string{"ps", "st"},
+			Usage:   "Show compose services: state, container id, network mode, and networks",
+			Action:  StatusAction,
+		},
+		{
+			Name:   "down",
+			Usage:  "Stop and remove project containers",
+			Action: DownAction,
+		},
+		{
+			Name:    "containerdfix",
+			Aliases: []string{"ctndfix"},
+			Usage:   "Report where the image store lives; with --apply, move containerd's root off the root partition",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "root",
+					Value: "/CONDA/containerd",
+					Usage: "Target directory for containerd's root, on a filesystem other than /",
+				},
+				&cli.BoolFlag{
+					Name:  "apply",
+					Usage: "Carry out the move (requires root); without it, only report and print the plan",
+				},
+				&cli.BoolFlag{
+					Name:  "force",
+					Usage: "Allow a target that is on the root partition (skips the mounted-filesystem check)",
+				},
 			},
-			&cli.BoolFlag{
-				Name:    "host-net",
-				Aliases: []string{"H"},
-				Value:   false,
-				Usage:   "Opt-in: run the stack service with network_mode=host via a temp compose override (Linux; does not modify docker-compose.yml)",
+			Action: ContainerdfixAction,
+		},
+		{
+			Name:    "fresh",
+			Aliases: []string{"reset"},
+			Usage:   "Initialize (if needed), bring up the build, and jump right into the shell",
+			Action: func(ctx context.Context, c *cli.Command) error {
+				// Optional: auto-init if files don't exist locally
+				if _, err := os.Stat("docker-compose.yml"); err != nil {
+					if !os.IsNotExist(err) {
+						return fmt.Errorf("could not check for docker-compose.yml: %w", err)
+					}
+					if err := InitAction(ctx, c); err != nil {
+						return fmt.Errorf("automatic initialization failed: %w", err)
+					}
+				}
+				if err := UpAction(ctx, c); err != nil {
+					return err
+				}
+				return ShellAction(ctx, c)
 			},
 		},
-		Commands: []*cli.Command{
-			{
-				Name:   "init",
-				Usage:  "Copy boilerplate Docker files into the current directory",
-				Action: InitAction,
-			},
-			{
-				Name:   "up",
-				Usage:  "Build and launch the Docker Compose stack in the background",
-				Action: UpAction,
-			},
-			{
-				Name:   "shell",
-				Usage:  "Exec into the dev container (auto-starts if down; recovers network on failure)",
-				Action: ShellAction,
-			},
-			{
-				Name:    "netfix",
-				Aliases: []string{"reconnect", "fixnet"},
-				Usage:   "Force-reconnect running containers to their Docker networks (fast sleep/VPN recovery)",
-				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "service-only",
-						Aliases: []string{"S"},
-						Usage:   "Only reconnect the service detected from the current directory's docker-compose.yml, not every container",
-					},
-				},
-				Action: NetfixAction,
-			},
-			{
-				Name:    "status",
-				Aliases: []string{"ps", "st"},
-				Usage:   "Show compose services: state, container id, network mode, and networks",
-				Action:  StatusAction,
-			},
-			{
-				Name:   "down",
-				Usage:  "Stop and remove project containers",
-				Action: DownAction,
-			},
-			{
-				Name:    "containerdfix",
-				Aliases: []string{"ctndfix"},
-				Usage:   "Report where the image store lives; with --apply, move containerd's root off the root partition",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:  "root",
-						Value: "/CONDA/containerd",
-						Usage: "Target directory for containerd's root, on a filesystem other than /",
-					},
-					&cli.BoolFlag{
-						Name:  "apply",
-						Usage: "Carry out the move (requires root); without it, only report and print the plan",
-					},
-					&cli.BoolFlag{
-						Name:  "force",
-						Usage: "Allow a target that is on the root partition (skips the mounted-filesystem check)",
-					},
-				},
-				Action: ContainerdfixAction,
-			},
-			{
-				Name:    "fresh",
-				Aliases: []string{"reset"},
-				Usage:   "Initialize (if needed), bring up the build, and jump right into the shell",
-				Action: func(ctx context.Context, c *cli.Command) error {
-					// Optional: auto-init if files don't exist locally
-					if _, err := os.Stat("docker-compose.yml"); err != nil {
-						if !os.IsNotExist(err) {
-							return fmt.Errorf("could not check for docker-compose.yml: %w", err)
-						}
-						if err := InitAction(ctx, c); err != nil {
-							return fmt.Errorf("automatic initialization failed: %w", err)
-						}
-					}
-					if err := UpAction(ctx, c); err != nil {
-						return err
-					}
-					return ShellAction(ctx, c)
-				},
-			},
-		},
-	}
+	},
+}
 
-	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		errorutils.ExitOnFail(err)
-	}
+func main() {
+	err := app.Run(context.Background(), os.Args)
+	errorutils.ExitOnFail(err)
 }
 
 // ---------------------------------------------------------------------------
@@ -1026,10 +1055,10 @@ func ContainerdfixAction(ctx context.Context, c *cli.Command) error {
 	}
 
 	if os.Geteuid() != 0 {
-		return fmt.Errorf("--apply changes system config; re-run as root: sudo dokwerker containerdfix --apply --root %s", target)
+		return errorutils.NewReport(fmt.Sprintf("--apply changes system config; re-run as root: sudo dokwerker containerdfix --apply --root %s", target), "qEDl58gjFfI")
 	}
 	if target == defaultContainerdRoot {
-		return fmt.Errorf("--root %s is the location being moved away from", target)
+		return errorutils.NewReport(fmt.Sprintf("--root %s is the location being moved away from", target), "XjzLajsYZ6h")
 	}
 
 	// The point of the exercise is landing on a different filesystem. Refuse a
@@ -1037,7 +1066,7 @@ func ContainerdfixAction(ctx context.Context, c *cli.Command) error {
 	parent := filepath.Dir(target)
 	if rdev, err := devOf("/"); err == nil {
 		if tdev, err := devOf(parent); err == nil && tdev == rdev && !c.Bool("force") {
-			return fmt.Errorf("%s is on the root partition (is the target filesystem mounted?); pass --force to proceed anyway", parent)
+			return errorutils.NewReport(fmt.Sprintf("%s is on the root partition (is the target filesystem mounted?); pass --force to proceed anyway", parent), "cbPipxQEWhV")
 		}
 	}
 

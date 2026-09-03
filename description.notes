@@ -41,3 +41,7 @@
 2025-Feb-14 22:28:31	shFossils/	Parse .bash_history and extract the list of command line utilities used.
 
 2026-Feb-01 11:18:07	avaro/	Report and toggle ideapad battery conservation mode (the ~80% charge cap)
+
+2026-Sep-02 15:50:31	dokwerker/	Docker Compose dev-stack workflow: boilerplate init, up/shell/down, network recovery, and containerd store relocation
+
+2026-Sep-03 06:31:30	logSync/	Two-way file sync between this machine and a phone over adb, with three-way merges done here rather than on the phone

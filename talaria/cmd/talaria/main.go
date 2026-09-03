@@ -24,12 +24,15 @@ import (
 	"github.com/jmonroynieto/cliWorkflow_tk/talaria/internal/store"
 )
 
-// Set at link time by the toolkit Makefile:
+// Version and CommitId are set at link time by the toolkit Makefile:
 //
-//	-X main.Version=1 -X main.Revision=7 -X main.CommitId=$(GIT_TAG)
+//	-X main.Version=1.8 -X main.CommitId=$(GIT_TAG)
+//
+// Revision is not — it is this tool's own counter, kept here in source and
+// reset to 0 when the toolkit's version is bumped.
 var (
 	Version  = "0"
-	Revision = "1"
+	Revision = "0"
 	CommitId = "unknown"
 )
 
