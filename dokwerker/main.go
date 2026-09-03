@@ -784,7 +784,7 @@ func main() {
 			},
 			{
 				Name:    "containerdfix",
-				Aliases: []string{"cdfix"},
+				Aliases: []string{"ctndfix"},
 				Usage:   "Report where the image store lives; with --apply, move containerd's root off the root partition",
 				Flags: []cli.Flag{
 					&cli.StringFlag{

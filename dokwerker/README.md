@@ -45,7 +45,7 @@ dokwerker down --project bibtex-1
 | `status` | `ps`, `st` | Table of services: state, status, container id, **net mode**, networks; marks the `--stack` shell target |
 | `netfix` | `reconnect`, `fixnet` | Force disconnect+reconnect bridge networks (parallel). Skips host-network containers. `--service-only` / `-S` limits to the stack service |
 | `down` | | `docker compose down` |
-| `containerdfix` | `cdfix` | Report where the image store lives; with `--apply`, move containerd's root off the root partition |
+| `containerdfix` | `ctndfix` | Report where the image store lives; with `--apply`, move containerd's root off the root partition |
 | `fresh` | `reset` | `init` (if needed) → `up` → `shell` |
 
 ### Global flags
