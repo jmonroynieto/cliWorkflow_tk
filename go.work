@@ -21,7 +21,6 @@ use (
 	./kompti
 	./kwiqExt
 	./lineExplorer
-	./logSync
 	./lotajxo
 	./mdMake
 	./megalophobia

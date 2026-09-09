@@ -44,4 +44,3 @@
 
 2026-Sep-02 15:50:31	dokwerker/	Docker Compose dev-stack workflow: boilerplate init, up/shell/down, network recovery, and containerd store relocation
 
-2026-Sep-03 06:31:30	logSync/	Two-way file sync between this machine and a phone over adb, with three-way merges done here rather than on the phone
