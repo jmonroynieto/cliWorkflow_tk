@@ -45,8 +45,9 @@ var flipCommand = &cli.Command{
 	},
 }
 
-// warnTLPWillRevert says so when the flip is cosmetic because TLP is configured the
-// other way and will reassert on the next AC transition.
+// warnTLPWillRevert says so when the flip disagrees with TLP's configuration, and spells
+// out which events actually reassert it. The disagreement is not necessarily a mistake:
+// it is how a temporary uncapping is expressed.
 func warnTLPWillRevert(now bool) {
 	setting := readTLPSetting()
 	if !setting.Found {
@@ -57,9 +58,9 @@ func warnTLPWillRevert(now bool) {
 		return
 	}
 
-	fmt.Printf("\nthis will not stick: %s=%s in %s asks for %s, and TLP reapplies its\n", tlpStopKey, setting.Value, setting.Source, stateWord(configured))
-	fmt.Printf("configuration on the next AC or battery transition. To make it permanent, set\n")
-	fmt.Printf("%s=%s in %s and run: sudo tlp start\n", tlpStopKey, tlpValueFor(now), setting.Source)
+	fmt.Printf("\nthis will not stick: %s=%s in %s asks for %s.\n", tlpStopKey, setting.Value, setting.Source, stateWord(configured))
+	fmt.Print(reassertNote(configured, now))
+	fmt.Printf("To make %s permanent instead, set %s=%s in %s and run: sudo tlp start\n", stateWord(now), tlpStopKey, tlpValueFor(now), setting.Source)
 }
 
 func tlpValueFor(on bool) string {

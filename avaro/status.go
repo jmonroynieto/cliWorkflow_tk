@@ -34,9 +34,8 @@ func statusAction(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-// reportTLP prints the configured state next to the live one. TLP reapplies its
-// configuration on every AC/battery transition, so a divergence here means the live
-// value has a short shelf life.
+// reportTLP prints the configured state next to the live one. A divergence means the
+// live value has a shelf life, so it is reported together with the events that end it.
 func reportTLP(live bool) {
 	setting := readTLPSetting()
 	if !setting.Found {
@@ -53,7 +52,7 @@ func reportTLP(live bool) {
 	fmt.Printf("tlp config:        %s=%s in %s -> %s\n", tlpStopKey, setting.Value, setting.Source, stateWord(configured))
 	if configured != live {
 		fmt.Printf("\ndivergence: TLP is configured for %s but the controller is %s.\n", stateWord(configured), stateWord(live))
-		fmt.Printf("TLP reapplies its configuration on the next AC or battery transition, which will\n")
-		fmt.Printf("put this back to %s. Edit %s to make the current state stick.\n", stateWord(configured), setting.Source)
+		fmt.Print(reassertNote(configured, live))
+		fmt.Printf("Edit %s to make the current state stick.\n", setting.Source)
 	}
 }

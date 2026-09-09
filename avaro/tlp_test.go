@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -30,9 +31,13 @@ func withFixture(t *testing.T, main string, dropIns map[string]string) {
 		}
 	}
 
-	oldMain, oldDir := tlpMainConf, tlpDropInD
-	tlpMainConf, tlpDropInD = conf, dir
-	t.Cleanup(func() { tlpMainConf, tlpDropInD = oldMain, oldDir })
+	// Point the defaults at a path inside the fixture too, so a test never reads the
+	// host's /usr/share/tlp/defaults.conf. Absent unless a test writes it.
+	defaults := filepath.Join(root, "defaults.conf")
+
+	oldMain, oldDir, oldDefaults := tlpMainConf, tlpDropInD, tlpDefaults
+	tlpMainConf, tlpDropInD, tlpDefaults = conf, dir, defaults
+	t.Cleanup(func() { tlpMainConf, tlpDropInD, tlpDefaults = oldMain, oldDir, oldDefaults })
 }
 
 func TestReadTLPSettingPrecedence(t *testing.T) {
@@ -124,5 +129,67 @@ func TestReadTLPSettingPrecedence(t *testing.T) {
 				t.Errorf("Enabled = %v, want %v", on, tc.wantOn)
 			}
 		})
+	}
+}
+
+func TestRestoreOnBatteryFallsBackToShippedDefault(t *testing.T) {
+	withFixture(t, "", nil)
+
+	enabled, value, source := restoreOnBattery()
+	if !enabled || value != "1" {
+		t.Errorf("restoreOnBattery = %v/%q, want true/\"1\" when no assignment exists", enabled, value)
+	}
+	if source == tlpMainConf {
+		t.Errorf("source = %q, want the built-in default", source)
+	}
+}
+
+func TestRestoreOnBatteryPrecedence(t *testing.T) {
+	tests := []struct {
+		name    string
+		main    string
+		want    bool
+		wantVal string
+	}{
+		{name: "explicitly off", main: "RESTORE_THRESHOLDS_ON_BAT=0\n", want: false, wantVal: "0"},
+		{name: "explicitly on", main: "RESTORE_THRESHOLDS_ON_BAT=1\n", want: true, wantVal: "1"},
+		// TLP compares against the literal 1, so anything else disables the behaviour.
+		{name: "any other value is off", main: "RESTORE_THRESHOLDS_ON_BAT=yes\n", want: false, wantVal: "yes"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			withFixture(t, tc.main, nil)
+
+			enabled, value, _ := restoreOnBattery()
+			if enabled != tc.want || value != tc.wantVal {
+				t.Errorf("restoreOnBattery = %v/%q, want %v/%q", enabled, value, tc.want, tc.wantVal)
+			}
+		})
+	}
+}
+
+func TestReassertNoteWording(t *testing.T) {
+	// Restore enabled and the controller uncapped: the note must say unplugging brings
+	// the cap back and that plugging in does not, since the whole point of a flip before
+	// plugging in is that the charge runs past the cap.
+	withFixture(t, "", nil)
+	note := reassertNote(true, false)
+	for _, want := range []string{"changes to battery", "Plugging in does not", "runs to 100%"} {
+		if !strings.Contains(note, want) {
+			t.Errorf("note missing %q, got:\n%s", want, note)
+		}
+	}
+
+	// Live state already capped: no claim about an uncapped charge.
+	if note := reassertNote(true, true); strings.Contains(note, "runs to 100%") {
+		t.Errorf("unexpected uncapped-charge claim while capped, got:\n%s", note)
+	}
+
+	// Restore disabled: unplugging is not a reassertion event at all.
+	withFixture(t, "RESTORE_THRESHOLDS_ON_BAT=0\n", nil)
+	note = reassertNote(true, false)
+	if !strings.Contains(note, "does not reapply thresholds when you unplug") {
+		t.Errorf("expected the no-restore wording, got:\n%s", note)
 	}
 }
