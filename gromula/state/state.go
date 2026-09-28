@@ -186,8 +186,25 @@ func SeedFromEnv() []PathEntry {
 	return entries
 }
 
+// canonicalKey returns the comparison key used to decide whether two PATH
+// entries are "the same directory": it lexically cleans the path (so
+// "/nix/manual/bin" and "/nix/manual/bin/" collapse together) and, when the
+// directory actually exists, resolves symlinks on top of that (so a symlinked
+// bin dir and its real target also collapse together). A path that doesn't
+// exist yet (a tool not installed yet, e.g.) still gets a stable key via the
+// lexical-clean fallback rather than being excluded from dedup.
+func canonicalKey(p string) string {
+	cleaned := filepath.Clean(strings.TrimSpace(p))
+	if resolved, err := filepath.EvalSymlinks(cleaned); err == nil {
+		return resolved
+	}
+	return cleaned
+}
+
 // dedupAndOrder takes a list of paths (new ones first or last) and existing entries,
 // applies removes, then adds while preserving order and removing duplicates (first seen wins).
+// Duplicates are decided on canonicalKey, not the literal stored string, so a
+// trailing slash or a symlink alias doesn't produce a second PATH entry.
 // It returns the final ordered unique list and updates sources/timestamps where appropriate.
 func dedupAndOrder(existing []PathEntry, toAdd []PathEntry, toRemove map[string]bool, prepend bool) []PathEntry {
 	seen := make(map[string]bool)
@@ -196,11 +213,12 @@ func dedupAndOrder(existing []PathEntry, toAdd []PathEntry, toRemove map[string]
 	// First, handle prepends or appends for new items
 	newItems := make([]PathEntry, 0, len(toAdd))
 	for _, e := range toAdd {
-		if toRemove[e.Path] {
+		key := canonicalKey(e.Path)
+		if toRemove[key] {
 			continue // removed takes precedence
 		}
-		if !seen[e.Path] {
-			seen[e.Path] = true
+		if !seen[key] {
+			seen[key] = true
 			newItems = append(newItems, e)
 		}
 	}
@@ -211,11 +229,12 @@ func dedupAndOrder(existing []PathEntry, toAdd []PathEntry, toRemove map[string]
 
 	// Then existing entries (skip removed and already seen)
 	for _, e := range existing {
-		if toRemove[e.Path] {
+		key := canonicalKey(e.Path)
+		if toRemove[key] {
 			continue
 		}
-		if !seen[e.Path] {
-			seen[e.Path] = true
+		if !seen[key] {
+			seen[key] = true
 			result = append(result, e)
 		}
 	}
@@ -233,10 +252,11 @@ func dedupAndOrder(existing []PathEntry, toAdd []PathEntry, toRemove map[string]
 func ApplyAdd(st *PathState, paths []string, source, sessionID string, prepend bool) (string, error) {
 	now := time.Now()
 
-	// Build a quick lookup of existing paths
+	// Build a quick lookup of existing paths, keyed by resolved path so a
+	// trailing slash or a symlink alias is recognized as the same entry.
 	existingPaths := make(map[string]bool, len(st.Entries))
 	for _, e := range st.Entries {
-		existingPaths[e.Path] = true
+		existingPaths[canonicalKey(e.Path)] = true
 	}
 
 	toAdd := make([]PathEntry, 0, len(paths))
@@ -248,15 +268,16 @@ func ApplyAdd(st *PathState, paths []string, source, sessionID string, prepend b
 			continue
 		}
 		cleaned := filepath.Clean(p)
+		key := canonicalKey(cleaned)
 
 		action := "append"
 		if prepend {
 			action = "prepend"
 		}
 
-		if existingPaths[cleaned] {
+		if existingPaths[key] {
 			action = "overwrite"
-			pathsToOverwrite[cleaned] = true
+			pathsToOverwrite[key] = true
 		}
 
 		toAdd = append(toAdd, PathEntry{
@@ -271,7 +292,7 @@ func ApplyAdd(st *PathState, paths []string, source, sessionID string, prepend b
 	// Remove old entries that we are overwriting so they can be re-positioned
 	filtered := make([]PathEntry, 0, len(st.Entries))
 	for _, e := range st.Entries {
-		if !pathsToOverwrite[e.Path] {
+		if !pathsToOverwrite[canonicalKey(e.Path)] {
 			filtered = append(filtered, e)
 		}
 	}
@@ -304,15 +325,19 @@ func ApplyAdd(st *PathState, paths []string, source, sessionID string, prepend b
 func ApplyRemove(st *PathState, paths []string, source, sessionID string) (string, error) {
 	now := time.Now()
 	toRemove := make(map[string]bool, len(paths))
+	requested := make([]string, 0, len(paths))
 	for _, p := range paths {
 		p = strings.TrimSpace(p)
-		if p != "" {
-			toRemove[filepath.Clean(p)] = true
+		if p == "" {
+			continue
 		}
+		cleaned := filepath.Clean(p)
+		requested = append(requested, cleaned)
+		toRemove[canonicalKey(cleaned)] = true
 	}
 
 	// We still record remove operations even if path wasn't present
-	for p := range toRemove {
+	for _, p := range requested {
 		_ = AppendOperation(map[string]any{
 			"op":        "remove",
 			"path":      p,
@@ -349,10 +374,14 @@ func ApplyClean() string {
 
 	for _, p := range parts {
 		p = strings.TrimSpace(p)
-		if p == "" || seen[p] {
+		if p == "" {
 			continue
 		}
-		seen[p] = true
+		key := canonicalKey(p)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
 		result = append(result, p)
 	}
 
