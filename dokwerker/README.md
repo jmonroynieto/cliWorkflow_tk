@@ -1,6 +1,6 @@
 # Dokwerker (DockerHelper CLI)
 
-A streamlined Go CLI for managing containerized development environments across Go and TypeScript stacks. It automates boilerplate setup, handles container footprints, and maps host `UID`/`GID` to prevent file permission issues with bind mounts.
+A streamlined Go CLI for managing containerized development environments across Go, TypeScript, Rust, and Julia (maths) stacks. It automates boilerplate setup, handles container footprints, and maps host `UID`/`GID` to prevent file permission issues with bind mounts.
 
 ## Quick Start & Examples
 
@@ -39,7 +39,7 @@ dokwerker down --project bibtex-1
 
 | Command | Aliases | What it does |
 |---------|---------|--------------|
-| `init` | | Copy stack boilerplate (`docker-compose.yml` + `Dockerfile`) into cwd |
+| `init` | | Copy stack boilerplate (`docker-compose.yml` + `Dockerfile`) into cwd. Refuses if either file already exists; `--force` overwrites them |
 | `up` | | `docker compose up -d --build` |
 | `shell` | | Ensure service is running, then `compose exec -it … bash`. On probe failure: **netfix that service** (bridge) or **force-recreate** (`--host-net`) |
 | `status` | `ps`, `st` | Table of services: state, status, container id, **net mode**, networks; marks the `--stack` shell target |
@@ -52,7 +52,7 @@ dokwerker down --project bibtex-1
 
 | Flag | Default | Meaning |
 |------|---------|---------|
-| `-s` / `--stack` | `go` | Stack → service map: `go` → `go-dev`, `ts` → `obsidian-dev` |
+| `-s` / `--stack` | `go` | Boilerplate for `init`/`fresh`: `go`, `ts`, `rust`, or `maths` (Julia + Go, Pandoc/XeLaTeX, Pluto on `127.0.0.1:1234`). Other commands detect the service from `docker-compose.yml` |
 | `-p` / `--project` | *(dir name)* | Docker Compose **project name** — labels this stack instance so you can run several in parallel (`bibtex-1`, …) |
 | `-H` / `--host-net` | **off** | Opt-in host networking for the stack service (see below) |
 

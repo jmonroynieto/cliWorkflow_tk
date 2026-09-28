@@ -190,6 +190,22 @@ func InitAction(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
+
+	var existing []string
+	for _, f := range []string{"docker-compose.yml", "Dockerfile"} {
+		if _, err := os.Stat(f); err == nil {
+			existing = append(existing, f)
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("could not check for %s: %w", f, err)
+		}
+	}
+	if len(existing) > 0 {
+		if !c.Bool("force") {
+			return errorutils.NewReport(fmt.Sprintf("refusing to overwrite existing file(s) in current directory: %s; rerun 'dokwerker init --force' to replace them", strings.Join(existing, ", ")), "N8vQdWzT3fY")
+		}
+		fmt.Printf("Warning: --force given, overwriting %s\n", strings.Join(existing, ", "))
+	}
+
 	stack := c.String("stack")
 	fmt.Printf("Initializing project with %s stack boilerplate...\n", stack)
 
@@ -204,6 +220,9 @@ func InitAction(ctx context.Context, c *cli.Command) error {
 	case "rust":
 		srcCompose = filepath.Join(boilerplateDir, "rust-docker-compose.yml")
 		srcDockerfile = filepath.Join(boilerplateDir, "rust-Dockerfile")
+	case "maths":
+		srcCompose = filepath.Join(boilerplateDir, "maths-docker-compose.yml")
+		srcDockerfile = filepath.Join(boilerplateDir, "maths-dockfile")
 	default:
 		return errorutils.NewReport(fmt.Sprintf("unsupported stack: %s", stack), "PjpmkDaVbu7")
 	}
@@ -748,7 +767,7 @@ func DownAction(ctx context.Context, c *cli.Command) error {
 
 var app = &cli.Command{
 	Name:    "dokwerker",
-	Usage:   "Generalized workflow manager for Go, TypeScript, and Rust Docker development",
+	Usage:   "Generalized workflow manager for Go, TypeScript, Rust, and Julia (maths) Docker development",
 	Version: fmt.Sprintf("%s.%s (%s)", Version, Revision, CommitId),
 	Flags: []cli.Flag{
 		debugFlag,
@@ -756,7 +775,7 @@ var app = &cli.Command{
 			Name:    "stack",
 			Aliases: []string{"s"},
 			Value:   "go",
-			Usage:   "Boilerplate to copy on 'init'/'fresh' (go, ts, or rust); other commands detect the service from docker-compose.yml",
+			Usage:   "Boilerplate to copy on 'init'/'fresh' (go, ts, rust, or maths); other commands detect the service from docker-compose.yml",
 		},
 		&cli.StringFlag{
 			Name:    "project",
@@ -773,8 +792,14 @@ var app = &cli.Command{
 	},
 	Commands: []*cli.Command{
 		{
-			Name:   "init",
-			Usage:  "Copy boilerplate Docker files into the current directory",
+			Name:  "init",
+			Usage: "Copy boilerplate Docker files into the current directory",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "force",
+					Usage: "Overwrite an existing docker-compose.yml or Dockerfile in the current directory",
+				},
+			},
 			Action: InitAction,
 		},
 		{
