@@ -1,0 +1,16 @@
+[Unit]
+Description=talaria workspace daemon (registry owner + socket)
+# Deliberately no network dependency — registry, socket and workspaces are local.
+
+[Service]
+# ExecSearchPath is what systemd uses to find the ExecStart binary;
+# Environment=PATH only reaches the process once it is running.
+ExecSearchPath=%h/Local/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=%h/Local/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Defaults: socket under $XDG_RUNTIME_DIR, GC every 1m for unpinned
+# workspaces older than 7d. Stops cleanly on SIGTERM.
+ExecStart=talariad
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

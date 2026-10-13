@@ -33,5 +33,7 @@ install-systemd:
 	install -d $(UNITDIR)
 	install -m 644 talaria/tools/systemd-services/talaria-maintain.service $(UNITDIR)/                                       
 	install -m 644 talaria/tools/systemd-services/talaria-maintain.timer $(UNITDIR)/                                         
+	install -m 644 talaria/tools/systemd-services/talariad.service $(UNITDIR)/
 	@echo "systemctl --user daemon-reload"                                                                                   
 	@echo "systemctl --user enable --now talaria-maintain.timer"
+	@echo "systemctl --user enable --now talariad.service   # optional daemon"

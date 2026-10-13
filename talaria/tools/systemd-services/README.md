@@ -11,6 +11,7 @@ your **toolkit / `go.work` root Makefile**, not as part of building the
 |------|------|
 | `talaria-maintain.timer` | On boot (~1 min) + hourly; `Persistent=true` |
 | `talaria-maintain.service` | `Type=oneshot` → `talaria maintain --gc-older-than 7d --quiet` |
+| `talariad.service` | Optional long-running daemon; starts at login when enabled |
 
 ## What `maintain` does
 
@@ -46,6 +47,7 @@ install-systemd:
 	install -d $(UNITDIR)
 	install -m 644 talaria/tools/systemd-services/talaria-maintain.service $(UNITDIR)/
 	install -m 644 talaria/tools/systemd-services/talaria-maintain.timer $(UNITDIR)/
+	install -m 644 talaria/tools/systemd-services/talariad.service $(UNITDIR)/
 	@echo "Installed units to $(UNITDIR)"
 	@echo "  systemctl --user daemon-reload"
 	@echo "  systemctl --user enable --now talaria-maintain.timer"
@@ -66,14 +68,18 @@ systemctl --user enable --now talaria-maintain.timer
 service sets:
 
 ```
+ExecSearchPath=%h/Local/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=PATH=%h/Local/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=talaria maintain --gc-older-than 7d --quiet
 ```
 
-So `talaria` is resolved by name. If your `install_dir` is neither `~/Local/bin`
-nor `~/.local/bin`, either:
+So `talaria` is resolved by name. `ExecSearchPath=` is the line that does it:
+systemd looks up a bare `ExecStart` command there, and `Environment=PATH=`
+only reaches the process once it is running (without `ExecSearchPath=` the
+unit fails with `status=203/EXEC`). If your `install_dir` is neither
+`~/Local/bin` nor `~/.local/bin`, either:
 
-1. Add that directory to the unit’s `Environment=PATH=…` when you install
+1. Add that directory to the unit’s `ExecSearchPath=…` when you install
    (e.g. `sed` / `envsubst` in the toolkit target), or  
 2. Point `ExecStart` at the absolute binary:
    `ExecStart=$(install_dir)/talaria maintain …`
@@ -107,3 +113,12 @@ loginctl enable-linger "$USER"
 
 You can run both: the CLI prefers the daemon when up; the oneshot still works
 via daemon or local fallback.
+
+`talariad.service` is installed by the same target but not enabled. To run the
+daemon for the whole login session:
+
+```bash
+systemctl --user enable --now talariad.service
+talaria status                                    # Backend: daemon
+journalctl --user -u talariad.service -n 20
+```
