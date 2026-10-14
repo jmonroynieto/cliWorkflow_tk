@@ -11,6 +11,8 @@ use (
 	./cueLine
 	./cw
 	./describeFiles
+	./doi2bib
+	./doi2bib/bibstomp
 	./dokwerker
 	./dripC
 	./fickleFinger
@@ -32,3 +34,5 @@ use (
 	./xwin
 	./zustellen
 )
+
+replace github.com/jmonroynieto/cliWorkflow_tk/doi2bib/bibstomp v0.0.0 => ./doi2bib/bibstomp
