@@ -1,6 +1,6 @@
 # bibstomp
 
-`bibstomp` is the implementation module used by `doi2bib`. It exposes BibTeX
+`bibstomp` is a package inside the `doi2bib` module. It exposes BibTeX
 parsing, name handling, Unicode folding, and citation-key minting as package
 `bibstomp`. Its optional command is in `cmd/bibstomp`:
 

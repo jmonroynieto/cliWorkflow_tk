@@ -2,7 +2,7 @@
 
 `doi2bib` is a cliWorkflow_tk module with a library at its root and a CLI in
 `cmd/doi2bib`. It retrieves DOI metadata as BibTeX, then uses the in-tree
-`bibstomp` module to remint citation keys.
+`bibstomp` package to remint citation keys.
 
 From the toolkit root, build and install it with the usual commands:
 
